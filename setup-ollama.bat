@@ -20,6 +20,9 @@ echo [*] Checking if Ollama server is running...
 curl -s -o nul http://localhost:11434/api/tags
 if errorlevel 1 (
     echo [*] Ollama is not running - starting it...
+    set CUDA_VISIBLE_DEVICES=-1
+    set OLLAMA_HOST=127.0.0.1:11434
+    set OLLAMA_ORIGINS=*
     start "Ollama" ollama serve
 )
 

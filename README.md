@@ -21,11 +21,14 @@
 ### 2. (опционально) Локальный ИИ — Ollama
 
 ```bash
-# Windows: скачайте с https://ollama.com/download/windows или запустите:
-setup-ollama.bat
-ollama pull qwen2.5:3b
-ollama serve
+# Windows: скачайте с https://ollama.com/download/windows, затем:
+setup-ollama.bat      # проверка/установка модели qwen2.5:3b
+ollama-start.bat      # запуск сервера Ollama (CPU-режим) + демо
 ```
+
+- Демо: откройте `demo/index.html` (виджет ходит напрямую в `http://localhost:11434`).
+- `ollama-start.bat` запускает Ollama в **CPU-режиме** (`CUDA_VISIBLE_DEVICES=-1`) и с `OLLAMA_ORIGINS=*` — так демо открывается даже из `file://`, а на старых GPU (GTX 10xx и т.п.) нет падения llama-server из-за несовместимого PTX.
+- Перед запуском закройте трей Ollama (`ollama app`), иначе порт `11434` будет занят её сервером.
 
 ### 3. (опционально) Сервер поддержки
 
