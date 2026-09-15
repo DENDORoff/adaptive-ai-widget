@@ -554,7 +554,8 @@
     try {
       window.__ADAPTIVE_DEBUG__ = {
         palette: { primary: PALETTE.primary, accent: PALETTE.accent, bg: PALETTE.bg, fg: PALETTE.fg, dark: PALETTE.dark, radius: PALETTE.radius, font: PALETTE.font, logo: PALETTE.logo },
-        knowledge: KNOW.slice(0, 12).map(function (i) { return i.title + ' :: ' + i.content.slice(0, 80); })
+        knowledge: KNOW.slice(0, 40).map(function (i) { return i.title + ' :: ' + i.content.slice(0, 120); }),
+        knowCount: KNOW.length
       };
     } catch (e) {}
   }
