@@ -172,6 +172,18 @@
           <input id="cfg_model" placeholder="qwen2.5:3b">
         </div>
       </div>
+      <div class="row">
+        <div>
+          <label>Режим работы ИИ-агента</label>
+          <select id="cfg_agentmode">
+            <option value="rag">RAG на сервере (весь контекст сразу)</option>
+            <option value="tools">Агент с инструментами (tool-calling)</option>
+          </select>
+        </div>
+        <div>
+          <label class="hint" style="margin-top:24px">RAG — проще и быстрее. Tool-calling — модель сама решает, когда искать в данных сайта.</label>
+        </div>
+      </div>
       <label>Эндпоинт (OpenAI-совместимый)</label>
       <input id="cfg_endpoint" placeholder="http://localhost:11434/v1/chat/completions">
       <label>API-ключ (оставьте пустым, чтобы не менять текущий)</label>
@@ -371,6 +383,7 @@
       $('#cfg_provider').value = c.provider || 'ollama';
       $('#cfg_endpoint').value = c.endpoint || '';
       $('#cfg_model').value = c.model || '';
+      $('#cfg_agentmode').value = (c.agentMode === 'tools' ? 'tools' : 'rag');
       $('#cfg_apikey').value = c.apiKey ? c.apiKey : '';
       $('#cfg_apikey').placeholder = c.apiKey ? ('сохранён: ' + c.apiKey) : 'ключ не задан';
       $('#cfg_from').value = c.from || '';
@@ -386,6 +399,7 @@
       provider: $('#cfg_provider').value,
       endpoint: $('#cfg_endpoint').value.trim(),
       model: $('#cfg_model').value.trim(),
+      agentMode: $('#cfg_agentmode').value,
       from: $('#cfg_from').value.trim(),
       instructions: $('#cfg_instr').value,
       askEmail: $('#cfg_askemail').checked

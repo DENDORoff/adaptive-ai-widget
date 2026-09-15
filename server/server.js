@@ -7,6 +7,7 @@ const path = require('path');
 const store = require('./lib/store');
 const mailer = require('./lib/mailer');
 const ai = require('./lib/ai');
+const agent = require('./lib/agent');
 
 const ADMIN_DIR = path.join(__dirname, '..', 'admin');
 const DEMO_DIR = path.join(__dirname, '..', 'demo');
@@ -26,6 +27,7 @@ function loadConfig() {
     askEmail: true,
     qa: [],
     qaThreshold: 0.45,
+    agentMode: 'rag',
     smtp: null
   };
   try {
@@ -168,7 +170,7 @@ function computeStats() {
     ratings: { count: ratedCount, avg: ratedCount ? ratingSum / ratedCount : 0 },
     popular,
     unresolvedQueries: unresolvedList.slice(0, 25),
-    ai: { provider: CFG.provider, endpoint: CFG.endpoint, model: CFG.model, from: mailer.from, instructionsSet: !!CFG.instructions, qaCount: (CFG.qa || []).length, qaThreshold: CFG.qaThreshold },
+    ai: { provider: CFG.provider, endpoint: CFG.endpoint, model: CFG.model, from: mailer.from, instructionsSet: !!CFG.instructions, qaCount: (CFG.qa || []).length, qaThreshold: CFG.qaThreshold, agentMode: CFG.agentMode },
     cache: { size: Object.keys(CACHE.entries).length, hits: CACHE.hits }
   };
 }
@@ -183,7 +185,8 @@ function publicConfig() {
     instructions: CFG.instructions || '',
     askEmail: CFG.askEmail !== undefined ? !!CFG.askEmail : true,
     qa: (CFG.qa || []).slice(0, 200).map((x) => ({ q: x.q || '', a: x.a || '', keys: Array.isArray(x.keys) ? x.keys.slice(0, 20) : [] })),
-    qaThreshold: CFG.qaThreshold
+    qaThreshold: CFG.qaThreshold,
+    agentMode: CFG.agentMode
   };
 }
 
@@ -334,6 +337,7 @@ async function handle(req, res) {
       })).filter((x) => x.q && x.a);
     }
     if (typeof body.qaThreshold === 'number' && isFinite(body.qaThreshold)) CFG.qaThreshold = Math.min(0.99, Math.max(0, body.qaThreshold));
+    if (body.agentMode === 'rag' || body.agentMode === 'tools') CFG.agentMode = body.agentMode;
     if (CFG.from !== oldFrom) mailer.configure(CFG);
     const persisted = saveConfigFile();
     logChat('config_changed', 'global', { fields: Object.keys(body).join(','), persisted });
@@ -381,8 +385,13 @@ async function handle(req, res) {
           if (qa) { a = qa; cacheSet(text, qa.text); }
         }
         if (!a) {
-          a = await ai.answer(CFG, chat, text, chat.instructions || CFG.instructions);
-          if (a.text) cacheSet(text, a.text);
+          if (CFG.agentMode === 'tools') {
+            const txt = await agent.agentAnswer(CFG, chat.knowledge || [], text, chat.instructions || CFG.instructions);
+            a = txt ? { text: txt, source: 'tools' } : null;
+          } else {
+            a = await ai.answer(CFG, chat, text, chat.instructions || CFG.instructions);
+          }
+          if (a && a.text) cacheSet(text, a.text);
         }
         if (!a) a = { text: null, source: null };
         chat.lastAnswerSource = a.source || null;

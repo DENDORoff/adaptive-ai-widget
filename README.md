@@ -55,6 +55,13 @@ node server\server.js                                 # по умолчанию 
 
 **Backend-режим (с сервером поддержки):** конфигурация ИИ, инструкции, логи чатов, email-уведомления и переключение на операторов живут на сервере. Агенты настраивают и обслуживают всё через админ-панель `/admin`, клиент видит ответы и события в реальном времени по SSE.
 
+У ИИ-агента на сервере **два режима работы** (переключаются в админке или `agentMode` в конфиге):
+
+- `agentMode: "rag"` — ответы ищет сервер и отдаёт весь контекст модели одним запросом. Проще и быстрее.
+- `agentMode: "tools"` — модель ходит в данные сайта через инструменты (tool-calling) и сама решает, когда и что искать.
+
+Подробности, плюсы и минусы — в [Приложении: режимы ИИ-агента](docs/MODES_COMPARISON.md).
+
 ```html
 <script>
 window.ADAPTIVE_WIDGET = {
@@ -223,11 +230,11 @@ window.__ADAPTIVE_DEBUG__.backend    // какой LLM-провайдер и м�
 ├── server/
 │   ├── server.js             # сервер поддержки: чаты, SSE, email-уведомления, /admin
 │   ├── config.example.json   # шаблон конфига сервера
-│   └── lib/                  # store.js (логи), mailer.js (почта), ai.js (RAG на сервере)
+│   └── lib/                  # store.js (логи), mailer.js (почта), ai.js (RAG), agent.js (tool-calling)
 ├── admin/
 │   └── index.html            # админ-панель: чаты, статистика, настройки агента
 ├── tests/
-│   ├── server.test.js        # тесты сервера (43 проверки)
+│   ├── server.test.js        # тесты сервера (48 проверок)
 │   ├── auth.test.js          # adminToken, «from» без SMTP, сохранение конфига (12 проверок)
 │   └── widget.test.js        # e2e-тесты (Puppeteer + мок-API, 43 проверки)
 ├── demo/
@@ -236,7 +243,10 @@ window.__ADAPTIVE_DEBUG__.backend    // какой LLM-провайдер и м�
 ├── docs/
 │   ├── IDEA.md               # концепция и архитектура
 │   ├── PITCH.md              # структура питча (5 минут)
-│   └── BUSINESS_PLAN.md      # бизнес-план и монетизация
+│   ├── BUSINESS_PLAN.md      # бизнес-план и монетизация
+│   ├── MODE_SERVER_RAG.md    # вариант 1: RAG на сервере
+│   ├── MODE_AGENT_TOOLS.md   # вариант 2: агент с инструментами
+│   └── MODES_COMPARISON.md   # отличия, плюсы и минусы режимов
 ├── package.json              # dev-зависимости только для тестов
 ├── ollama-start.bat          # один скрипт: модель + запуск Ollama (CPU) + демо
 └── README.md

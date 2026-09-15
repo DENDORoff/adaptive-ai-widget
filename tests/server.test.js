@@ -38,6 +38,16 @@ function startAiMock() {
         const body = JSON.parse(b);
         const q = (body.messages[1] || {}).content || '';
         if (q.indexOf('HARDFAIL') !== -1) { res.writeHead(500); res.end('boom'); return; }
+        if (body.tools) {
+          const hasToolResult = (body.messages || []).some((m) => m && m.role === 'tool');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          if (hasToolResult) {
+            res.end(JSON.stringify({ choices: [{ message: { role: 'assistant', content: 'TOOLS-ответ: ' + q } }] }));
+          } else {
+            res.end(JSON.stringify({ choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 'tool-1', type: 'function', function: { name: 'search_knowledge', arguments: JSON.stringify({ query: q }) } }] } }] }));
+          }
+          return;
+        }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ choices: [{ message: { role: 'assistant', content: 'LLM-ответ: ' + q } }] }));
       });
@@ -187,6 +197,27 @@ async function main() {
   check('LLM не вызывалась повторно', aiCalls === llmCallsAfter1, 'calls=' + aiCalls);
   const fullC2 = await fetch(base + '/api/chat/chat2/full').then((r) => r.json());
   check('попадание из кэша имеет source=cache', (fullC2.hits || []).filter((h) => h.q === qCache).some((h) => h.source === 'cache'));
+
+  console.log('\n== Server: агент с инструментами (agentMode=tools) ==');
+  const updTools = await fetch(base + '/api/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agentMode: 'tools' })
+  }).then((r) => r.json());
+  check('PUT /api/config принял agentMode=tools', updTools.agentMode === 'tools', updTools.agentMode);
+  const toolsBefore = aiCalls;
+  const tMsg = await post(base + '/api/chat/chat2/message', { text: 'Сколько стоит гарантия TECHTOOLS' });
+  check('tools-агент отвечает после tool-calling цикла', tMsg.messages[0] && tMsg.messages[0].text.indexOf('TOOLS-ответ') === 0, tMsg.messages[0] && tMsg.messages[0].text);
+  check('tools-агент сделал два запроса к модели (вызов инструмента + ответ)', aiCalls === toolsBefore + 2, 'aiCalls=' + aiCalls);
+  const fullTools = await fetch(base + '/api/chat/chat2/full').then((r) => r.json());
+  check('попадание tools-агента source=tools', (fullTools.hits || []).filter((h) => h.q === 'Сколько стоит гарантия TECHTOOLS').some((h) => h.source === 'tools'));
+  await fetch(base + '/api/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agentMode: 'rag' })
+  }).then((r) => r.json());
+  const rBack = await post(base + '/api/chat/chat2/message', { text: 'Ракета на Луне BACKRAG' });
+  check('переключение обратно на rag — снова обычный LLM', rBack.messages[0] && rBack.messages[0].text.indexOf('LLM-ответ') === 0, rBack.messages[0] && rBack.messages[0].text);
 
   console.log('\n== Server: FAQ для чипов ==');
   const faq = await fetch(base + '/api/faq').then((r) => r.json());
