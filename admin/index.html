@@ -12,9 +12,14 @@
   }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: "Segoe UI", Inter, system-ui, sans-serif; background: var(--bg); color: var(--text); }
-  header { display: flex; align-items: center; gap: 14px; padding: 14px 22px; background: var(--panel2); border-bottom: 1px solid var(--line); position: sticky; top: 0; }
+  header { display: flex; align-items: center; gap: 14px; padding: 12px 22px; background: var(--panel2); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 4; flex-wrap: wrap; }
   header h1 { font-size: 16px; margin: 0; font-weight: 600; }
   header .badge { font-size: 12px; color: var(--sub); }
+  .tabs { display: flex; gap: 4px; margin-left: 14px; }
+  .tabs button { background: transparent; border: 1px solid transparent; color: var(--sub); padding: 7px 14px; border-radius: 10px; }
+  .tabs button.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .view { display: none; }
+  .view.on { display: block; }
   .wrap { display: flex; min-height: calc(100vh - 57px); }
   .list { width: 340px; border-right: 1px solid var(--line); padding: 12px; overflow-y: auto; flex-shrink: 0; }
   .chat-card { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; cursor: pointer; background: var(--panel); transition: .15s; }
@@ -44,8 +49,8 @@
   .msg.system { justify-content: center; } .msg.system .bub { background: transparent; color: var(--sub); font-size: 12px; }
   .msg .meta { display: block; font-size: 10.5px; color: var(--sub); margin-bottom: 2px; }
   .reply { display: flex; gap: 8px; margin: 12px 0; } .reply input { flex: 1; }
-  input, textarea { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 13px; font-family: inherit; outline: none; }
-  input:focus, textarea:focus { border-color: var(--brand); }
+  input, textarea, select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 13px; font-family: inherit; outline: none; }
+  input:focus, textarea:focus, select:focus { border-color: var(--brand); }
   .cfg { margin-top: 12px; display: grid; gap: 10px; }
   .cfg label { font-size: 12px; color: var(--sub); display: block; margin-bottom: 4px; }
   .cfg textarea { width: 100%; resize: vertical; min-height: 70px; }
@@ -53,55 +58,137 @@
   .hint { color: var(--sub); font-size: 12px; }
   .empty { color: var(--sub); text-align: center; margin-top: 60px; }
   .toast { position: fixed; bottom: 18px; right: 18px; background: var(--panel); border: 1px solid var(--line); padding: 10px 16px; border-radius: 10px; font-size: 13px; display: none; z-index: 5; }
+  .page { padding: 20px 26px; max-width: 980px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 22px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .card .num { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+  .card .lbl { font-size: 12px; color: var(--sub); }
+  .page h3 { font-size: 14px; margin: 18px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td, th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--sub); font-weight: 500; font-size: 12px; }
+  .cfg2 { display: grid; gap: 10px; max-width: 560px; }
+  .cfg2 label { font-size: 12px; color: var(--sub); }
+  .cfg2 input, .cfg2 textarea, .cfg2 select { width: 100%; }
+  .cfg2 textarea { min-height: 90px; resize: vertical; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .ok { color: var(--green); } .warn { color: var(--yellow); } .err { color: var(--red); }
 </style>
 </head>
 <body>
 <header>
   <h1>Adaptive Widget — поддержка</h1>
-  <span class="badge" id="conn">подключение...</span>
-  <span class="badge" style="margin-left:auto">чаты обновляются автоматически</span>
+  <nav class="tabs">
+    <button id="tab_chats" class="on" onclick="showTab('chats')">Чаты</button>
+    <button id="tab_stats" onclick="showTab('stats')">Статистика</button>
+    <button id="tab_settings" onclick="showTab('settings')">Настройки агента</button>
+  </nav>
+  <span class="badge" id="conn" style="margin-left:auto">подключение...</span>
 </header>
-<div class="wrap">
-  <div class="list" id="list"><div class="empty">Загрузка...</div></div>
-  <div class="detail" id="detail">
-    <div class="empty" id="empty">Выберите чат слева</div>
-    <div id="chatview" style="display:none">
-      <div class="head">
-        <h2 id="d_site"></h2>
-        <span class="st" id="d_status"></span>
-        <span class="hint" id="d_email"></span>
-        <div class="actions" style="margin-left:auto">
-          <button id="btn_takeover">Взять в операторы</button>
-          <button id="btn_ai">Вернуть ИИ</button>
-          <button class="danger" id="btn_close">Закрыть</button>
-        </div>
-      </div>
-      <div class="msgs" id="d_msgs"></div>
-      <div class="reply">
-        <input id="d_reply" placeholder="Ответ клиенту от имени оператора... Enter для отправки">
-        <button class="primary" id="btn_reply">Ответить</button>
-      </div>
-      <div class="cfg">
-        <div>
-          <label>Инструкции для ИИ в этом чате (сохраняются и применяются к следующим ответам)</label>
-          <textarea id="d_instr"></textarea>
-          <div class="actions" style="margin-top:6px"><button id="btn_instr">Сохранить инструкции</button></div>
-        </div>
-        <details>
-          <summary class="hint">Промпт и данные, которые виджет собрал с сайта</summary>
-          <div>
-            <label>Промпт (снимок с сайта)</label>
-            <textarea id="d_prompt" readonly style="color:var(--sub)"></textarea>
+
+<div class="view on" id="view-chats">
+  <div class="wrap">
+    <div class="list" id="list"><div class="empty">Загрузка...</div></div>
+    <div class="detail" id="detail">
+      <div class="empty" id="empty">Выберите чат слева</div>
+      <div id="chatview" style="display:none">
+        <div class="head">
+          <h2 id="d_site"></h2>
+          <span class="st" id="d_status"></span>
+          <span class="hint" id="d_email"></span>
+          <div class="actions" style="margin-left:auto">
+            <button id="btn_takeover">Взять в операторы</button>
+            <button id="btn_ai">Вернуть ИИ</button>
+            <button class="danger" id="btn_close">Закрыть</button>
           </div>
+        </div>
+        <div class="msgs" id="d_msgs"></div>
+        <div class="reply">
+          <input id="d_reply" placeholder="Ответ клиенту от имени оператора... Enter для отправки">
+          <button class="primary" id="btn_reply">Ответить</button>
+        </div>
+        <div class="cfg">
           <div>
-            <label>Извлечённые знания (первые 12)</label>
-            <textarea id="d_know" readonly style="color:var(--sub)"></textarea>
+            <label>Инструкции для ИИ в этом чате (сохраняются и применяются к следующим ответам)</label>
+            <textarea id="d_instr"></textarea>
+            <div class="actions" style="margin-top:6px"><button id="btn_instr">Сохранить инструкции</button></div>
           </div>
-        </details>
+          <details>
+            <summary class="hint">Промпт и данные, которые виджет собрал с сайта</summary>
+            <div>
+              <label>Промпт (снимок с сайта)</label>
+              <textarea id="d_prompt" readonly style="color:var(--sub)"></textarea>
+            </div>
+            <div>
+              <label>Извлечённые знания (первые 12)</label>
+              <textarea id="d_know" readonly style="color:var(--sub)"></textarea>
+            </div>
+          </details>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<div class="view" id="view-stats">
+  <div class="page">
+    <div class="cards">
+      <div class="card"><div class="num" id="st_sites">–</div><div class="lbl">Сайтов с агентом</div></div>
+      <div class="card"><div class="num" id="st_active">–</div><div class="lbl">Активных сейчас</div></div>
+      <div class="card"><div class="num" id="st_online">–</div><div class="lbl">Пользователей онлайн</div></div>
+      <div class="card"><div class="num" id="st_chats">–</div><div class="lbl">Всего чатов</div></div>
+      <div class="card"><div class="num" id="st_answers">–</div><div class="lbl">Ответов агента</div></div>
+      <div class="card"><div class="num" id="st_unresolved">–</div><div class="lbl">Нерешённых запросов</div></div>
+      <div class="card"><div class="num" id="st_rating">–</div><div class="lbl">Средняя оценка</div></div>
+    </div>
+    <h3>Популярные запросы</h3>
+    <div id="st_popular" class="hint">нет данных</div>
+    <h3>Запросы, где агент не решил проблему</h3>
+    <div id="st_unres_t" class="hint">нет данных</div>
+    <div class="hint" id="st_ai" style="margin-top:18px"></div>
+  </div>
+</div>
+
+<div class="view" id="view-settings">
+  <div class="page">
+    <h3 style="margin-top:0">Параметры ИИ-агента</h3>
+    <p class="hint">Применяются ко всем сайтам с этим сервером. Сохраняются в <code>server/config.json</code>.</p>
+    <div class="cfg2">
+      <div class="row">
+        <div>
+          <label>Провайдер</label>
+          <select id="cfg_provider">
+            <option value="ollama">Ollama (локальная)</option>
+            <option value="openai">OpenAI</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="groq">Groq</option>
+            <option value="mistral">Mistral</option>
+            <option value="custom">Свой OpenAI-совместимый API</option>
+          </select>
+        </div>
+        <div>
+          <label>Модель</label>
+          <input id="cfg_model" placeholder="qwen2.5:3b">
+        </div>
+      </div>
+      <label>Эндпоинт (OpenAI-совместимый)</label>
+      <input id="cfg_endpoint" placeholder="http://localhost:11434/v1/chat/completions">
+      <label>API-ключ (оставьте пустым, чтобы не менять текущий)</label>
+      <input id="cfg_apikey" placeholder="ввести новый ключ при необходимости">
+      <label>Email отправителя уведомлений</label>
+      <input id="cfg_from" placeholder="support@deworld.su">
+      <label><input type="checkbox" id="cfg_askemail" style="width:auto;margin-right:6px"> Спрашивать email перед чатом</label>
+      <label>Инструкции для ИИ-агента (добавляются к каждому ответу)</label>
+      <textarea id="cfg_instr" placeholder="Например: всегда предлагайте скидку 10% новым клиентам"></textarea>
+      <div class="actions">
+        <button class="primary" id="btn_savecfg">Сохранить настройки</button>
+        <span class="hint" id="cfg_saved"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script>
 (function () {
@@ -109,6 +196,15 @@
   let chats = [];
   let currentId = null;
   let current = null;
+
+  window.showTab = function (name) {
+    ['chats', 'stats', 'settings'].forEach((t) => {
+      $('#view-' + t).classList.toggle('on', t === name);
+      $('#tab_' + t).classList.toggle('on', t === name);
+    });
+    if (name === 'stats') loadStats();
+    if (name === 'settings') loadConfig();
+  };
 
   function toast(msg) {
     const t = $('#toast');
@@ -139,8 +235,9 @@
     if (!chats.length) { list.innerHTML = '<div class="empty">Чатов пока нет</div>'; return; }
     list.innerHTML = chats.map((c) => {
       const d = new Date(c.updatedAt).toLocaleString('ru-RU');
+      const star = c.rating ? ' ⭐' + c.rating : '';
       return '<div class="chat-card' + (c.id === currentId ? ' active' : '') + '" data-id="' + esc(c.id) + '">' +
-        '<div class="top"><span class="site">' + esc(c.siteName || 'Чат') + '</span><span class="st ' + esc(c.status) + '">' + esc(c.status) + '</span></div>' +
+        '<div class="top"><span class="site">' + esc(c.siteName || 'Чат') + '</span><span class="st ' + esc(c.status) + '">' + esc(c.status) + star + '</span></div>' +
         '<div class="email">' + esc(c.email || '— без почты') + '</div>' +
         '<div class="last">' + esc(c.lastText || '…') + ' · ' + esc(d) + '</div>' +
       '</div>';
@@ -174,7 +271,7 @@
     const c = current;
     $('#d_site').textContent = c.siteName || 'Чат ' + c.id;
     const st = $('#d_status');
-    st.textContent = c.status;
+    st.textContent = c.status + (c.rating ? ' · ⭐' + c.rating : '');
     st.className = 'st ' + c.status;
     $('#d_email').textContent = '✉ ' + (c.email || '—') + ' · ' + new Date(c.createdAt).toLocaleString('ru-RU');
     const names = { user: 'Клиент', bot: 'ИИ-агент', agent: 'Оператор', system: 'Система' };
@@ -224,8 +321,66 @@
     toast('Инструкции сохранены');
   });
 
+  // ---------- Статистика ----------
+  function numEl(id, v) { $('#st_' + id).textContent = v; }
+
+  async function loadStats() {
+    try {
+      const s = await api('/api/stats');
+      numEl('sites', s.totalSites);
+      numEl('active', s.activeChats);
+      numEl('online', s.onlineUsers);
+      numEl('chats', s.totalChats);
+      numEl('answers', s.answers);
+      numEl('unresolved', s.unresolved);
+      numEl('rating', s.ratings.count ? s.ratings.avg.toFixed(1) + ' (' + s.ratings.count + ')' : '—');
+      $('#st_popular').innerHTML = s.popular.length
+        ? '<table><tr><th>Запрос</th><th>Раз</th></tr>' + s.popular.map((p) => '<tr><td>' + esc(p.q) + '</td><td>' + p.count + '</td></tr>').join('') + '</table>'
+        : 'нет данных';
+      $('#st_unres_t').innerHTML = s.unresolvedQueries.length
+        ? '<table><tr><th>Запрос</th><th>Сайт</th><th>Когда</th></tr>' + s.unresolvedQueries.map((q) => '<tr><td>' + esc(q.q) + '</td><td>' + esc(q.site) + '</td><td>' + esc(new Date(q.ts).toLocaleString('ru-RU')) + '</td></tr>').join('') + '</table>'
+        : 'нет данных';
+      $('#st_ai').textContent = 'ИИ: ' + s.ai.provider + ' · ' + s.ai.model + ' · ' + s.ai.endpoint + ' · отправитель ' + s.ai.from + (s.ai.instructionsSet ? ' · инструкции заданы' : ' · инструкции не заданы');
+    } catch (e) { toast('Не удалось загрузить статистику'); }
+  }
+
+  // ---------- Настройки агента ----------
+  async function loadConfig() {
+    try {
+      const c = await api('/api/config');
+      $('#cfg_provider').value = c.provider || 'ollama';
+      $('#cfg_endpoint').value = c.endpoint || '';
+      $('#cfg_model').value = c.model || '';
+      $('#cfg_apikey').value = c.apiKey ? c.apiKey : '';
+      $('#cfg_apikey').placeholder = c.apiKey ? ('сохранён: ' + c.apiKey) : 'ключ не задан';
+      $('#cfg_from').value = c.from || '';
+      $('#cfg_askemail').checked = !!c.askEmail;
+      $('#cfg_instr').value = c.instructions || '';
+    } catch (e) { toast('Не удалось загрузить настройки'); }
+  }
+
+  $('#btn_savecfg').addEventListener('click', async () => {
+    const body = {
+      provider: $('#cfg_provider').value,
+      endpoint: $('#cfg_endpoint').value.trim(),
+      model: $('#cfg_model').value.trim(),
+      from: $('#cfg_from').value.trim(),
+      instructions: $('#cfg_instr').value,
+      askEmail: $('#cfg_askemail').checked
+    };
+    const k = $('#cfg_apikey').value.trim();
+    if (k) body.apiKey = k;
+    try {
+      const r = await api('/api/config', { method: 'PUT', body: JSON.stringify(body) });
+      $('#cfg_saved').textContent = r.persisted ? '✓ сохранено в config.json' : '✓ сохранено (в памяти, без файла)';
+      $('#cfg_apikey').value = '';
+      setTimeout(() => ($('#cfg_saved').textContent = ''), 3000);
+    } catch (e) { toast('Не удалось сохранить настройки'); }
+  });
+
   refreshList();
   setInterval(refreshList, 3000);
+  setInterval(() => { if ($('#view-stats').classList.contains('on')) loadStats(); }, 5000);
 })();
 </script>
 </body>

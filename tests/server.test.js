@@ -133,14 +133,46 @@ async function main() {
   const r4 = await post(base + '/api/chat/chat1/message', { text: 'Вернули ИИ?' });
   check('ИИ работает после mode ai', r4.messages[0] && r4.messages[0].text.indexOf('LLM-ответ') === 0, r4.messages[0] && r4.messages[0].text);
 
-  const logFile = path.join(TMP, 'chatlog.ndjson');
-  const logLines = fs.readFileSync(logFile, 'utf8').split('\n').filter(Boolean);
-  check('все чаты логируются (NDJSON)', logLines.length >= 6, 'lines=' + logLines.length);
+  console.log('\n== Server: конфиг агента ==');
+  const cfg0 = await fetch(base + '/api/config').then((r) => r.json());
+  check('GET /api/config отдаёт провайдера', cfg0.provider === 'ollama', cfg0.provider);
+  const upd = await fetch(base + '/api/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'test-model-2', instructions: 'Всегда вежливо здороваться', provider: 'ollama' })
+  }).then((r) => r.json());
+  check('PUT /api/config обновил модель', upd.model === 'test-model-2', upd.model);
+  check('PUT /api/config обновил инструкции', upd.instructions === 'Всегда вежливо здороваться');
 
-  console.log('\n== Server: второй чат (fallback без AI) ==');
+  console.log('\n== Server: нерешённый запрос ==');
+  const ru = await post(base + '/api/chat/chat1/message', { text: 'Гиппопотам в океане HARDFAIL' });
+  check('при отсутствии ответа приходит fallback-сообщение', ru.messages[0] && ru.messages[0].from === 'bot' && ru.messages[0].text.indexOf('Не нашёл точного ответа') !== -1, ru.messages[0] && ru.messages[0].text.slice(0, 60));
+  const fullU = await fetch(base + '/api/chat/chat1/full').then((r) => r.json());
+  check('попадание записано как нерешённое', (fullU.hits || []).some((h) => h.resolved === false && h.q === 'Гиппопотам в океане HARDFAIL'));
+
+  console.log('\n== Server: оценка ==');
+  const rt = await post(base + '/api/chat/chat1/rating', { score: 5 });
+  check('rating сохранён', rt.ok === true && rt.score === 5, rt.score);
+
+  console.log('\n== Server: второй чат ==');
   await post(base + '/api/init', { chatId: 'chat2', email: 'two@example.com', siteName: 'Two', knowledge: KNOWLEDGE });
   const r5 = await post(base + '/api/chat/chat2/message', { text: 'Наушники Aurora X' });
   check('второй чат отвечает', !!r5.messages[0] && !!r5.messages[0].text, r5.messages[0] && r5.messages[0].text);
+  await post(base + '/api/chat/chat2/rating', { score: 3 });
+
+  console.log('\n== Server: статистика ==');
+  const stats = await fetch(base + '/api/stats').then((r) => r.json());
+  check('stats.sites', stats.totalSites >= 2, stats.totalSites);
+  check('stats.answers', stats.answers >= 4, stats.answers);
+  check('stats.unresolved >= 1', stats.unresolved >= 1, stats.unresolved);
+  check('stats.ratings.avg = 4', stats.ratings.avg === 4, stats.ratings.avg);
+  check('stats.popular содержит запрос', stats.popular.some((p) => p.q === 'сколько стоят наушники aurora x?'), JSON.stringify(stats.popular));
+  check('stats.unresolvedQueries', stats.unresolvedQueries.length >= 1 && stats.unresolvedQueries[0].q === 'Гиппопотам в океане HARDFAIL', JSON.stringify(stats.unresolvedQueries[0]));
+  check('stats.ai.instructionsSet после PUT', stats.ai.instructionsSet === true && stats.ai.model === 'test-model-2', stats.ai.model);
+
+  const logFile = path.join(TMP, 'chatlog.ndjson');
+  const logLines = fs.readFileSync(logFile, 'utf8').split('\n').filter(Boolean);
+  check('все чаты логируются (NDJSON)', logLines.length >= 6, 'lines=' + logLines.length);
 
   server.close();
   aiMock.close();

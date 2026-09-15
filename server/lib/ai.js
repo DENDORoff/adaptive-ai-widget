@@ -88,8 +88,8 @@ async function askLLM(cfg, sysMsg, userText) {
  * Полный ответ: пробуем LLM, при неудаче — локальный взвешенный поиск (fallback),
  * чтобы демо работало даже без запущенной модели.
  */
-async function answer(cfg, chat, q) {
-  const sysMsg = buildPrompt({ siteName: chat.siteName, instructions: chat.instructions }, chat.knowledge || [], q);
+async function answer(cfg, chat, q, instructions) {
+  const sysMsg = buildPrompt({ siteName: chat.siteName, instructions: instructions != null ? instructions : chat.instructions }, chat.knowledge || [], q);
   const llm = await askLLM(cfg, sysMsg, q);
   if (llm) return { text: llm, source: 'llm' };
   const best = findBest(chat.knowledge || [], q);

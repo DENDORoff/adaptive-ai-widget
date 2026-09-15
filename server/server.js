@@ -10,6 +10,8 @@ const ai = require('./lib/ai');
 
 const ADMIN_DIR = path.join(__dirname, '..', 'admin');
 
+const CFG_PATH = process.env.AW_CONFIG || path.join(__dirname, 'config.json');
+
 function loadConfig() {
   const def = {
     provider: 'ollama',
@@ -18,15 +20,28 @@ function loadConfig() {
     apiKey: process.env.AW_API_KEY || '',
     from: 'support@deworld.su',
     adminToken: process.env.AW_ADMIN_TOKEN || '',
+    instructions: '',
+    askEmail: true,
     smtp: null
   };
   try {
-    const f = path.join(__dirname, 'config.json');
-    if (fs.existsSync(f)) Object.assign(def, JSON.parse(fs.readFileSync(f, 'utf8')));
+    if (fs.existsSync(CFG_PATH)) Object.assign(def, JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')));
   } catch (e) {
-    console.error('[server] config.json не прочитан:', e.message);
+    console.error('[server] config не прочитан:', e.message);
   }
   return def;
+}
+
+function saveConfigFile() {
+  try {
+    if (fs.existsSync(CFG_PATH)) {
+      fs.writeFileSync(CFG_PATH, JSON.stringify(CFG, null, 2));
+      return true;
+    }
+  } catch (e) {
+    console.error('[server] config не сохранён:', e.message);
+  }
+  return false;
 }
 
 const CFG = loadConfig();
@@ -65,6 +80,64 @@ function json(res, code, data) {
 function now() { return new Date().toISOString(); }
 function logChat(action, chatId, extra) {
   store.appendLog(Object.assign({ at: now(), action, chatId }, extra || {}));
+}
+
+const FALLBACK_TEXT = 'Не нашёл точного ответа по данным этого сайта. Переформулируйте вопрос или напишите в поддержку: ';
+
+function computeStats() {
+  const chats = store.getChats();
+  const nowMs = Date.now();
+  const activeWindow = 60 * 1000;
+  let onlineUsers = 0, activeChats = 0, answers = 0, unresolved = 0, ratedCount = 0, ratingSum = 0;
+  const sites = new Set();
+  const queryList = [];
+  const unresolvedList = [];
+  Object.keys(chats).forEach((id) => {
+    const c = chats[id];
+    if (c.siteName) sites.add(c.siteName);
+    const sse = sseCount(id);
+    if (sse > 0) onlineUsers += sse;
+    const last = c.lastSeen ? Date.parse(c.lastSeen) : Date.parse(c.updatedAt || 0);
+    if (sse > 0 || nowMs - last < activeWindow) activeChats++;
+    (c.messages || []).forEach((m) => { if (m.role === 'bot') answers++; });
+    (c.hits || []).forEach((h) => {
+      queryList.push(h.q);
+      if (!h.resolved) unresolvedList.push({ q: h.q, site: h.site || '', ts: h.ts });
+    });
+    if (c.rating) { ratedCount++; ratingSum += c.rating; }
+  });
+  const popularMap = {};
+  queryList.forEach((q) => {
+    const k = String(q || '').trim().toLowerCase();
+    if (k) popularMap[k] = (popularMap[k] || 0) + 1;
+  });
+  const popular = Object.keys(popularMap).map((q) => ({ q, count: popularMap[q] })).sort((a, b) => b.count - a.count).slice(0, 10);
+  unresolvedList.reverse();
+  return {
+    generatedAt: now(),
+    totalSites: sites.size,
+    totalChats: Object.keys(chats).length,
+    activeChats,
+    onlineUsers,
+    answers,
+    unresolved: unresolvedList.length,
+    ratings: { count: ratedCount, avg: ratedCount ? ratingSum / ratedCount : 0 },
+    popular,
+    unresolvedQueries: unresolvedList.slice(0, 25),
+    ai: { provider: CFG.provider, endpoint: CFG.endpoint, model: CFG.model, from: mailer.from, instructionsSet: !!CFG.instructions }
+  };
+}
+
+function publicConfig() {
+  return {
+    provider: CFG.provider,
+    endpoint: CFG.endpoint,
+    model: CFG.model,
+    apiKey: CFG.apiKey ? String(CFG.apiKey).slice(0, 3) + '…' + String(CFG.apiKey).slice(-4) : '',
+    from: CFG.from,
+    instructions: CFG.instructions || '',
+    askEmail: CFG.askEmail !== undefined ? !!CFG.askEmail : true
+  };
 }
 
 function chip(chat) {
@@ -154,6 +227,31 @@ async function handle(req, res) {
     return json(res, 200, list);
   }
 
+  if (u.pathname === '/api/stats' && req.method === 'GET') {
+    if (!adminGuard(req, res)) return;
+    return json(res, 200, computeStats());
+  }
+
+  if (u.pathname === '/api/config' && req.method === 'GET') {
+    if (!adminGuard(req, res)) return;
+    return json(res, 200, publicConfig());
+  }
+
+  if (u.pathname === '/api/config' && req.method === 'PUT') {
+    if (!adminGuard(req, res)) return;
+    const body = await readBody(req);
+    const oldFrom = CFG.from;
+    ['provider', 'endpoint', 'model', 'from', 'instructions'].forEach((k) => {
+      if (typeof body[k] === 'string') CFG[k] = body[k].trim();
+    });
+    if (typeof body.apiKey === 'string' && body.apiKey.trim()) CFG.apiKey = body.apiKey.trim();
+    if (body.askEmail !== undefined) CFG.askEmail = !!body.askEmail;
+    if (CFG.from !== oldFrom) mailer.configure(CFG);
+    const persisted = saveConfigFile();
+    logChat('config_changed', 'global', { fields: Object.keys(body).join(','), persisted });
+    return json(res, 200, Object.assign({ ok: true, persisted }, publicConfig()));
+  }
+
   const m = u.pathname.match(/^\/api\/chat\/([^/]+)\/([a-z]+)$/);
   if (m) {
     const chatId = decodeURIComponent(m[1]);
@@ -162,6 +260,7 @@ async function handle(req, res) {
 
     if (action === 'events' && req.method === 'GET') {
       if (!chat) return json(res, 404, { error: 'chat not found' });
+      chat.lastSeen = now();
       res.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-cache',
@@ -182,25 +281,47 @@ async function handle(req, res) {
       if (!text) return json(res, 400, { error: 'empty message' });
       chat.messages.push({ id: store.genId('m'), role: 'user', text, ts: now() });
       chat.updatedAt = now();
+      chat.lastSeen = now();
       logChat('user_message', chatId, { text: text.slice(0, 120) });
 
       let out = [];
       if (chat.status === 'ai') {
-        const a = await ai.answer(CFG, chat, text);
+        const a = await ai.answer(CFG, chat, text, chat.instructions || CFG.instructions);
         chat.lastAnswerSource = a.source || null;
-        logChat('ai_answer', chatId, { source: a.source || null, fallback: a.source === 'search' });
+        chat.hits = chat.hits || [];
+        chat.hits.push({ q: text, resolved: !!a.text, source: a.source || null, site: chat.siteName || '', ts: now() });
+        logChat('ai_answer', chatId, { source: a.source || null, fallback: a.source === 'search', text: text.slice(0, 120) });
         if (a.text) {
           const botMsg = { id: store.genId('m'), role: 'bot', text: a.text, ts: now() };
           chat.messages.push(botMsg);
           out.push({ id: botMsg.id, from: 'bot', text: botMsg.text });
+        } else {
+          const fb = { id: store.genId('m'), role: 'bot', text: FALLBACK_TEXT + mailer.from, ts: now() };
+          chat.messages.push(fb);
+          out.push({ id: fb.id, from: 'bot', text: fb.text });
+          logChat('unresolved', chatId, { text: text.slice(0, 120) });
         }
       }
       chat.updatedAt = now();
       return json(res, 200, { mode: chat.status, messages: out });
     }
 
+    if (action === 'rating' && req.method === 'POST') {
+      const body = await readBody(req);
+      const score = Math.round(Number(body.score));
+      if (isFinite(score) && score >= 1 && score <= 5) {
+        chat.rating = score;
+        chat.ratedAt = now();
+        chat.lastSeen = now();
+        logChat('rating', chatId, { score });
+        return json(res, 200, { ok: true, score });
+      }
+      return json(res, 400, { error: 'score must be 1..5' });
+    }
+
     if (action === 'handoff' && req.method === 'POST') {
       chat.status = 'human';
+      chat.lastSeen = now();
       chat.messages.push({ id: store.genId('m'), role: 'system', text: 'Чат передан оператору', ts: now() });
       chat.updatedAt = now();
       logChat('handoff', chatId, { email: chat.email });
@@ -217,6 +338,7 @@ async function handle(req, res) {
       chat.messages.push(msg);
       chat.status = chat.status === 'closed' ? 'closed' : 'human';
       chat.updatedAt = now();
+      chat.lastSeen = now();
       logChat('agent_reply', chatId, { text: text.slice(0, 120) });
 
       if (sseCount(chatId) === 0 && chat.email) {
@@ -237,6 +359,7 @@ async function handle(req, res) {
       const body = await readBody(req);
       chat.instructions = String(body.instructions || '').slice(0, 4000);
       chat.updatedAt = now();
+      chat.lastSeen = now();
       logChat('instructions', chatId);
       return json(res, 200, { ok: true });
     }
@@ -245,6 +368,7 @@ async function handle(req, res) {
       if (!adminGuard(req, res)) return;
       const body = await readBody(req);
       chat.status = body.mode === 'ai' ? 'ai' : 'human';
+      chat.lastSeen = now();
       chat.messages.push({ id: store.genId('m'), role: 'system', text: 'Режим: ' + (chat.status === 'ai' ? 'ИИ-агент' : 'оператор'), ts: now() });
       chat.updatedAt = now();
       logChat('mode_change', chatId, { mode: chat.status });
@@ -256,6 +380,7 @@ async function handle(req, res) {
       if (!adminGuard(req, res)) return;
       chat.status = 'closed';
       chat.updatedAt = now();
+      chat.lastSeen = now();
       logChat('closed', chatId);
       sseSend(chatId, 'mode', { mode: 'closed' });
       return json(res, 200, { ok: true });

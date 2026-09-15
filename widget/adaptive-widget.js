@@ -13,8 +13,6 @@
     backend: '',
     askEmail: false,
     supportEmail: 'support@deworld.su',
-    showConfig: true,
-    adminPass: '',
     instructions: '',
     autoOpen: true,
     teaser: ''
@@ -67,15 +65,7 @@
     get: function (k) { try { return window.localStorage ? localStorage.getItem(k) : null; } catch (e) { return null; } },
     set: function (k, v) { try { if (window.localStorage) localStorage.setItem(k, v); } catch (e) {} }
   };
-  var CHAT = { id: '', email: '', human: false, seen: {}, es: null };
-
-  function isAdmin() {
-    return LS.get('pw_admin|' + (location.hostname || '')) === '1';
-  }
-
-  function grantAdmin() {
-    LS.set('pw_admin|' + (location.hostname || ''), '1');
-  }
+  var CHAT = { id: '', email: '', human: false, seen: {}, es: null, backendTurns: 0, rated: false, closing: false };
   (function initChat() {
     if (!CONFIG.backend) return;
     if (CUSTOM.askEmail === undefined) CONFIG.askEmail = true;
@@ -83,8 +73,6 @@
     CHAT.id = LS.get(key) || '';
     if (!CHAT.id) { CHAT.id = 'c_' + Math.random().toString(36).slice(2, 10); LS.set(key, CHAT.id); }
     CHAT.email = LS.get('pw_email') || '';
-    var saved = LS.get('pw_instr');
-    if (saved) CONFIG.instructions = saved;
   })();
 
   var LANG = (document.documentElement.lang || 'ru').slice(0, 2).toLowerCase();
@@ -107,15 +95,8 @@
     emailAsk: 'Leave your email so we can reply even if you close this tab:',
     emailDone: 'Thanks! Now answers can also be sent to your email.',
     emailBad: 'That does not look like an email. Please enter it again:',
-    settings: 'AI settings',
-    adminAsk: 'Enter admin password to change widget settings:',
-    adminBad: 'Wrong password.',
-    instrTitle: 'Instructions (applied to AI answers)',
-    instrSave: 'Save instructions',
-    instrSaved: 'Instructions saved',
-    promptTitle: 'Prompt sent to the model',
-    knowTitle: 'Data collected from the site',
-    knowRefresh: 'Re-collect site data',
+    ratingAsk: 'Rate how the agent answered:',
+    ratingDone: 'Thank you for your rating!',
     operatorBtn: 'Talk to a human'
   } : {
     title: 'Ассистент сайта',
@@ -134,15 +115,8 @@
     emailAsk: 'Оставьте ваш email, чтобы мы могли ответить, даже если вы закроете эту вкладку:',
     emailDone: 'Спасибо! Теперь ответы могут приходить и на вашу почту.',
     emailBad: 'Похоже, это не email. Введите почту ещё раз:',
-    settings: 'Настройки ИИ',
-    adminAsk: 'Введите пароль администратора для изменения настроек виджета:',
-    adminBad: 'Неверный пароль.',
-    instrTitle: 'Инструкции (применяются к ответам ИИ)',
-    instrSave: 'Сохранить инструкции',
-    instrSaved: 'Инструкции сохранены',
-    promptTitle: 'Промпт, который получает модель',
-    knowTitle: 'Данные, собранные с сайта',
-    knowRefresh: 'Пересобрать данные сайта',
+    ratingAsk: 'Как вы оцените ответы агента?',
+    ratingDone: 'Спасибо за вашу оценку!',
     operatorBtn: 'Оператор'
   };
 
@@ -464,7 +438,6 @@
   var SVG_SEND = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
   var SVG_CLOSE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
   var SVG_OP = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="2.5" y="13" width="4" height="6" rx="1.5"/><rect x="17.5" y="13" width="4" height="6" rx="1.5"/></svg>';
-  var SVG_GEAR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33 1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 
   function cssText() {
     var dark = PALETTE.dark;
@@ -493,22 +466,9 @@
       '.head .s{font-size:11.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
       '.close{background:none;border:none;color:#fff;cursor:pointer;opacity:.8;padding:4px;}',
       '.close:hover{opacity:1;}',
-      '.op-btn,.gear{background:none;border:none;color:#fff;cursor:pointer;opacity:.85;padding:4px;flex:0 0 auto;}',
-      '.op-btn:hover,.gear:hover{opacity:1;}',
+      '.op-btn{background:none;border:none;color:#fff;cursor:pointer;opacity:.85;padding:4px;flex:0 0 auto;}',
+      '.op-btn:hover{opacity:1;}',
       '.op-btn.on{opacity:1;padding:3px;border-radius:8px;background:rgba(255,255,255,.18);}',
-      '.cfg{position:absolute;top:0;left:0;right:0;bottom:0;background:' + panelBg + ';z-index:5;padding:16px;overflow-y:auto;display:none;}',
-      '.cfg.open{display:block;}',
-      '.cfg-close{position:absolute;top:10px;right:12px;background:none;border:none;color:' + sub + ';cursor:pointer;font-size:15px;line-height:1;padding:4px;}',
-      '.cfg-close:hover{color:' + PALETTE.primary + ';}',
-      '.cfg h4{margin:0 0 10px;font-size:14px;}',
-      '.cfg label{display:block;font-size:11.5px;color:' + sub + ';margin:12px 0 4px;}',
-      '.cfg textarea{width:100%;min-height:64px;border:1px solid ' + (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)') + ';background:transparent;color:' + panelText + ';border-radius:10px;padding:8px 10px;font-size:12.5px;resize:vertical;outline:none;font-family:inherit;}',
-      '.cfg textarea[readonly]{color:' + sub + ';}',
-      '.cfg textarea:focus{border-color:' + PALETTE.primary + ';}',
-      '.cfg .know{max-height:150px;overflow:auto;border:1px solid ' + (dark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.08)') + ';border-radius:10px;padding:8px 10px;font-size:12px;color:' + panelText + ';}',
-      '.cfg .know .k{margin-bottom:4px;opacity:.9;}',
-      '.cfg button{border:none;background:' + PALETTE.primary + ';color:#fff;border-radius:10px;padding:8px 12px;font-size:12.5px;cursor:pointer;margin-top:8px;margin-right:6px;}',
-      '.cfg .hint{font-size:11.5px;color:' + sub + ';margin-top:8px;}',
       '.chips{padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';}',
       '.chips .lbl{width:100%;font-size:11.5px;color:' + sub + ';margin-bottom:2px;}',
       '.chip{border:1px solid ' + (dark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.12)') + ';background:' + chipBg + ';color:' + chipText + ';border-radius:100px;padding:5px 11px;font-size:12.5px;cursor:pointer;transition:background .15s;}',
@@ -521,6 +481,10 @@
       '.b.bot .m{background:' + (dark ? '#2b3242' : '#f1f5f9') + ';border-top-left-radius:4px;}',
       '.b.user .m{background:linear-gradient(135deg,' + PALETTE.primary + ',' + accentDark + ');color:#fff;border-top-right-radius:4px;}',
       '.b .name{font-size:10.5px;color:' + sub + ';margin-bottom:2px;padding-left:2px;}',
+      '.stars{background:' + (dark ? '#2b3242' : '#f1f5f9') + ';border-radius:14px;border-top-left-radius:4px;padding:9px 13px;max-width:78%;}',
+      '.stars .lbl{font-size:12px;margin-bottom:5px;}',
+      '.stars button{background:none;border:none;cursor:pointer;font-size:22px;line-height:1;color:#cbd5e1;padding:0 3px;}',
+      '.stars button:hover,.stars button.on{color:#fbbf24;}',
       '.dots span{display:inline-block;width:6px;height:6px;margin-right:3px;background:' + sub + ';border-radius:50%;animation:blink 1.2s infinite;}',
       '.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}',
       '@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}',
@@ -543,21 +507,7 @@
       '<div class="ava">' + SVG_ICON + '</div>' +
       '<div class="titles"><div class="t">' + T.title + '</div><div class="s">' + T.status + '</div></div>' +
       '<button class="op-btn" data-op title="' + T.operatorBtn + '">' + SVG_OP + '</button>' +
-      (CONFIG.showConfig ? '<button class="gear" data-gear title="' + T.settings + '">' + SVG_GEAR + '</button>' : '') +
       '<button class="close" aria-label="' + T.close + '">' + SVG_CLOSE + '</button>' +
-      '</div>' +
-      '<div class="cfg" data-cfg>' +
-      '<button class="cfg-close" data-x title="' + T.close + '">✕</button>' +
-      '<h4>' + T.settings + '</h4>' +
-      '<label>' + T.instrTitle + '</label>' +
-      '<textarea data-instr placeholder="..."></textarea>' +
-      '<button data-save>' + T.instrSave + '</button>' +
-      '<button data-reknow>' + T.knowRefresh + '</button>' +
-      '<label>' + T.promptTitle + '</label>' +
-      '<textarea data-prompt readonly></textarea>' +
-      '<label data-know-lbl>' + T.knowTitle + '</label>' +
-      '<div class="know" data-know></div>' +
-      '<div class="hint" style="margin-top:10px">' + T.fallback + '</div>' +
       '</div>' +
       '<div class="chips"><div class="lbl">' + T.chips + '</div><div data-chips></div></div>' +
       '<div class="msgs"></div>' +
@@ -669,7 +619,7 @@
     addMsg(q, 'user');
     inputEl.value = '';
     typing(true);
-    if (CONFIG.backend && CHAT.id) backendAsk(q);
+    if (CONFIG.backend && CHAT.id) { CHAT.backendTurns++; backendAsk(q); }
     else offlineAsk(q);
   }
 
@@ -732,35 +682,36 @@
     });
   }
 
-  function fillSettings() {
-    var instr = shadow.querySelector('[data-instr]');
-    var promptI = shadow.querySelector('[data-prompt]');
-    var knowBox = shadow.querySelector('[data-know]');
-    var knowLbl = shadow.querySelector('[data-know-lbl]');
-    if (!instr || !promptI || !knowBox) return;
-    instr.value = CONFIG.instructions || '';
-    promptI.value = systemPromptBase('');
-    knowLbl.textContent = T.knowTitle + ' (' + KNOW.length + ')';
-    knowBox.innerHTML = KNOW.slice(0, 14).map(function (k) {
-      return '<div class="k">• ' + safeHtml(String(k.title).slice(0, 60)) + '</div>';
-    }).join('') || '<div class="hint">—</div>';
+  function showStarRating() {
+    var div = document.createElement('div');
+    div.className = 'b bot';
+    div.innerHTML = '<div class="av">' + SVG_ICON + '</div><div class="col"><div class="name">' + safeHtml(T.title) + '</div><div class="stars"><div class="lbl">' + safeHtml(T.ratingAsk) + '</div><button data-star="1">★</button><button data-star="2">★</button><button data-star="3">★</button><button data-star="4">★</button><button data-star="5">★</button></div></div>';
+    msgEl.appendChild(div);
+    msgEl.scrollTop = msgEl.scrollHeight;
+    Array.prototype.forEach.call(div.querySelectorAll('[data-star]'), function (b) {
+      b.addEventListener('click', function () {
+        var score = Number(b.getAttribute('data-star'));
+        CHAT.rated = true;
+        fetch(CONFIG.backend + '/api/chat/' + encodeURIComponent(CHAT.id) + '/rating', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ score: score })
+        }).catch(function () {});
+        addMsg(T.ratingDone, 'bot');
+        CHAT.closing = false;
+        panelEl.classList.remove('open');
+      });
+    });
   }
 
-  function toggleSettings(forceOpen) {
-    var cfg = shadow.querySelector('[data-cfg]');
-    if (!cfg) return;
-    var open = forceOpen !== undefined ? forceOpen : !cfg.classList.contains('open');
-    if (open) fillSettings();
-    cfg.classList.toggle('open', open);
-  }
-
-  function reExtract() {
-    KNOW.length = 0;
-    buildKnowledge();
-    indexKnowledge();
-    pushChips();
-    fillSettings();
-    if (CONFIG.backend && CHAT.id) initBackend();
+  function tryClose() {
+    var wantRating = CONFIG.backend && CHAT.id && CHAT.backendTurns > 0 && !CHAT.rated && !CHAT.closing;
+    if (wantRating) {
+      CHAT.closing = true;
+      showStarRating();
+      return;
+    }
+    panelEl.classList.remove('open');
   }
 
   function wire() {
@@ -773,7 +724,7 @@
     sendBtn = shadow.querySelector('.input button');
 
     toggleBtn.addEventListener('click', toggle);
-    shadow.querySelector('.close').addEventListener('click', function () { panelEl.classList.remove('open'); });
+    shadow.querySelector('.close').addEventListener('click', tryClose);
     shadow.querySelectorAll('.teaser .x').forEach(function (b) { b.addEventListener('click', function (e) { e.stopPropagation(); teaserEl.style.display = 'none'; }); });
     teaserEl.addEventListener('click', function () { teaserEl.style.display = 'none'; toggle(); });
     sendBtn.addEventListener('click', function () { ask(inputEl.value); });
@@ -784,38 +735,6 @@
     });
     var opBtn = shadow.querySelector('[data-op]');
     if (opBtn) opBtn.addEventListener('click', doHandoff);
-    var gear = shadow.querySelector('[data-gear]');
-    if (gear) gear.addEventListener('click', function () {
-      if (CONFIG.adminPass && !isAdmin()) {
-        var v = window.prompt(T.adminAsk);
-        if (!v) return;
-        if (v === CONFIG.adminPass) { grantAdmin(); toggleSettings(); return; }
-        addMsg(T.adminBad, 'bot');
-        return;
-      }
-      toggleSettings();
-    });
-    var cfgX = shadow.querySelector('[data-x]');
-    if (cfgX) cfgX.addEventListener('click', function () { toggleSettings(false); });
-    var cfgBtn = shadow.querySelector('[data-cfg]');
-    if (cfgBtn) {
-      var saveBtn = shadow.querySelector('[data-save]');
-      if (saveBtn) saveBtn.addEventListener('click', function () {
-        var v = shadow.querySelector('[data-instr]').value;
-        CONFIG.instructions = v.trim();
-        LS.set('pw_instr', CONFIG.instructions);
-        if (CONFIG.backend && CHAT.id) {
-          fetch(CONFIG.backend + '/api/chat/' + encodeURIComponent(CHAT.id) + '/instructions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ instructions: CONFIG.instructions })
-          }).catch(function () {});
-        }
-        statusOk(T.instrSaved, '#4ade80');
-      });
-      var reBtn = shadow.querySelector('[data-reknow]');
-      if (reBtn) reBtn.addEventListener('click', reExtract);
-    }
     addMsg('Привет! ' + CONFIG.siteName + '. Спросите меня о товарах, доставке или возврате — я отвечаю данными этого сайта.', 'bot');
     if (CONFIG.aiEnabled || CONFIG.backend) checkAI();
     if (CONFIG.backend) {

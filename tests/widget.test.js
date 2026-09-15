@@ -19,6 +19,7 @@ let lastInit = null;
 let lastMessage = null;
 let lastHandoff = null;
 let lastInstr = null;
+let lastRating = null;
 const chatMode = {};
 const sseClients = Object.create(null);
 let ollamaDown = false;
@@ -109,13 +110,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (u.pathname === '/adminlocked') {
-    const html = indexHtml.replace("model: 'qwen2.5:3b'", "adminPass: 's3cret'");
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(html);
-    return;
-  }
-
   if (u.pathname === '/api/health') {
     jsonRes(res, 200, { ok: true, from: 'support@deworld.su' });
     return;
@@ -174,6 +168,13 @@ const server = http.createServer((req, res) => {
       let body = '';
       req.on('data', (c) => (body += c));
       req.on('end', () => { lastInstr = JSON.parse(body); jsonRes(res, 200, { ok: true }); });
+      return;
+    }
+
+    if (action === 'rating' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (c) => (body += c));
+      req.on('end', () => { lastRating = JSON.parse(body); jsonRes(res, 200, { ok: true, score: lastRating.score }); });
       return;
     }
   }
@@ -405,69 +406,70 @@ async function main() {
   check('ответ оператора приходит через SSE', true);
   check('нет ошибок в консоли', pageErrors.length === 0, pageErrors.join('; '));
 
-  // ---------- Тест 9: локальные настройки ИИ в виджете ----------
-  console.log('\n== Тест 9: локальные настройки ИИ ==');
+  // ---------- Тест 9: настроек агента в виджете больше нет ----------
+  console.log('\n== Тест 9: настройки агента не в виджете (в админке) ==');
   await page.goto(base() + '/', { waitUntil: 'networkidle2' });
   await page.waitForFunction(() => {
     const host = document.querySelector('[data-adaptive-widget]');
-    return host && host.shadowRoot && !!host.shadowRoot.querySelector('[data-gear]');
+    return host && host.shadowRoot && !!host.shadowRoot.querySelector('.fab');
   });
-  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-gear]').click(); });
-  await page.waitForFunction(() => document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-cfg]').classList.contains('open'));
-  const cfgInfo = await page.evaluate(() => {
+  const hasGear = await page.evaluate(() => {
     const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
-    return {
-      open: s.querySelector('[data-cfg]').classList.contains('open'),
-      prompt: s.querySelector('[data-prompt]').value,
-      know: s.querySelector('[data-know]').innerHTML
-    };
+    return !!(s.querySelector('[data-gear]') || s.querySelector('[data-cfg]') || s.querySelector('[data-save]'));
   });
-  check('панель настроек открывается', cfgInfo.open);
-  check('промпт собран из данных сайта', cfgInfo.prompt.indexOf('Данные сайта') !== -1);
-  check('список знаний из скрапинга', (cfgInfo.know.match(/•/g) || []).length >= 3, cfgInfo.know);
+  check('шестерёнки и панели настроек в виджете нет', !hasGear);
 
-  await page.evaluate(() => {
-    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
-    const instr = s.querySelector('[data-instr]');
-    instr.value = 'Всегда предлагайте скидку 10% новым клиентам';
-    s.querySelector('[data-save]').click();
-  });
-  await new Promise((r) => setTimeout(r, 400));
-  check('инструкции сохранены в localStorage', await page.evaluate(() => localStorage.getItem('pw_instr')) === 'Всегда предлагайте скидку 10% новым клиентам');
-
-  // ---------- Тест 10: настройки только для админа (adminPass) ----------
-  console.log('\n== Тест 10: админ-гейт настроек ==');
-  await page.goto(base() + '/adminlocked', { waitUntil: 'networkidle2' });
+  // ---------- Тест 10: оценка агента при закрытии чата ----------
+  console.log('\n== Тест 10: оценка агента при закрытии ==');
+  await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+  await page.goto(base() + '/backend', { waitUntil: 'networkidle2' });
   await page.waitForFunction(() => {
     const host = document.querySelector('[data-adaptive-widget]');
-    return host && host.shadowRoot && !!host.shadowRoot.querySelector('[data-gear]');
+    return host && host.shadowRoot && !!host.shadowRoot.querySelector('.fab');
   });
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.fab').click(); });
+  await page.waitForFunction(() => {
+    const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.b .m');
+    const last = msgs[msgs.length - 1];
+    return last && last.textContent.indexOf('email') !== -1;
+  }, { timeout: 10000 });
   await page.evaluate(() => {
-    window.prompt = () => 'wrongpass';
-    document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-gear]').click();
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const input = s.querySelector('.input input');
+    input.value = 'user@example.com';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   });
-  await new Promise((r) => setTimeout(r, 400));
-  const cfgAfterFail = await page.evaluate(() => document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-cfg]').classList.contains('open'));
-  const badMsg = await page.evaluate(() => {
+  await new Promise((r) => setTimeout(r, 600));
+
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const input = s.querySelector('.input input');
+    input.value = 'Сколько стоят наушники?';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.b .m');
+    const last = msgs[msgs.length - 1];
+    return last && last.textContent.indexOf('ответ сервера') !== -1;
+  }, { timeout: 10000 });
+
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.close').click(); });
+  await page.waitForFunction(() => !!document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.stars [data-star]'), { timeout: 6000 });
+  check('при закрытии предлагается оценка', true);
+
+  await page.evaluate(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    host.shadowRoot.querySelector('.stars [data-star="4"]').click();
+  });
+  await new Promise((r) => setTimeout(r, 500));
+  const closedAfterRating = await page.evaluate(() => !document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.panel').classList.contains('open'));
+  check('панель закрылась после оценки', closedAfterRating);
+  check('оценка отправлена на сервер', !!lastRating && lastRating.score === 4, lastRating && lastRating.score);
+  const ratingMsg = await page.evaluate(() => {
     const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.b .m');
     return msgs[msgs.length - 1].textContent;
   });
-  check('неверный пароль не открывает настройки', !cfgAfterFail);
-  check('появляется сообщение об ошибке', badMsg === 'Неверный пароль.', badMsg);
-
-  await page.evaluate(() => {
-    window.prompt = () => 's3cret';
-    document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-gear]').click();
-  });
-  await new Promise((r) => setTimeout(r, 400));
-  const cfgAfterOk = await page.evaluate(() => document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-cfg]').classList.contains('open'));
-  check('верный пароль открывает настройки', cfgAfterOk);
-
-  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-x]').click(); });
-  await new Promise((r) => setTimeout(r, 200));
-  const cfgClosed = await page.evaluate(() => document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-cfg]').classList.contains('open'));
-  check('кнопка ✕ закрывает настройки', !cfgClosed);
-  check('права админа запомнены', await page.evaluate(() => localStorage.getItem('pw_admin|localhost')) === '1');
+  check('показано подтверждение оценки', ratingMsg.indexOf('Спасибо') !== -1, ratingMsg);
 
   // ---------- Тест 11: нейтральный статус, когда Ollama недоступна ----------
   console.log('\n== Тест 11: статус при недоступной Ollama ==');
