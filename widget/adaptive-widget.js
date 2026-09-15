@@ -552,6 +552,12 @@
     box.innerHTML = items.map(function (t) { return '<button class="chip">' + safeHtml(t.length > 42 ? t.slice(0, 42) + '…' : t) + '</button>'; }).join('');
   }
 
+  function pushServerChips(items) {
+    var box = chipsEl.querySelector('[data-chips]');
+    if (!box || !items || !items.length) return;
+    box.innerHTML = items.slice(0, 8).map(function (t) { return '<button class="chip">' + safeHtml(String(t).length > 42 ? String(t).slice(0, 42) + '…' : String(t)) + '</button>'; }).join('');
+  }
+
   var CONFIG_MODE = '';
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -677,6 +683,9 @@
     }).then(function () {
       connectSSE();
       statusOk('чат подключён · поддержка', '#4ade80');
+      fetch(CONFIG.backend + '/api/faq').then(function (r) { if (!r.ok) throw new Error(); return r.json(); }).then(function (d) {
+        if (d && d.items && d.items.length) pushServerChips(d.items.map(function (i) { return i.q; }));
+      }).catch(function () {});
     }).catch(function () {
       statusOk('сервер чата недоступен', '#f87171');
     });

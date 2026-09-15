@@ -20,6 +20,7 @@ const KNOWLEDGE = [
 ];
 
 let aiMock;
+let aiCalls = 0;
 let passed = 0;
 let failed = 0;
 function check(name, cond, extra) {
@@ -30,6 +31,7 @@ function check(name, cond, extra) {
 function startAiMock() {
   aiMock = http.createServer((req, res) => {
     if (req.method === 'POST' && req.url === '/v1/chat/completions') {
+      aiCalls++;
       let b = '';
       req.on('data', (c) => (b += c));
       req.on('end', () => {
@@ -139,10 +141,25 @@ async function main() {
   const upd = await fetch(base + '/api/config', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'test-model-2', instructions: 'Всегда вежливо здороваться', provider: 'ollama' })
+    body: JSON.stringify({
+      model: 'test-model-2',
+      instructions: 'Всегда вежливо здороваться',
+      provider: 'ollama',
+      qaThreshold: 0.4,
+      qa: [
+        { q: 'Сколько стоят наушники Aurora X?', a: 'QA-ответ: 7990 ₽', keys: ['цена', 'наушники', 'aurora', 'стоимость'] }
+      ]
+    })
   }).then((r) => r.json());
   check('PUT /api/config обновил модель', upd.model === 'test-model-2', upd.model);
   check('PUT /api/config обновил инструкции', upd.instructions === 'Всегда вежливо здороваться');
+  check('PUT /api/config принял базу Q&A', upd.qa && upd.qa.length === 1 && upd.qa[0].q === 'Сколько стоят наушники Aurora X?', JSON.stringify(upd.qa));
+
+  console.log('\n== Server: Q&A без ИИ (перефразировка) ==');
+  const qaMsg = await post(base + '/api/chat/chat1/message', { text: 'Какая цена наушников Ауроры?' });
+  check('перефразированный вопрос отвечает из базы Q&A', qaMsg.messages[0] && qaMsg.messages[0].text.indexOf('QA-ответ') !== -1, qaMsg.messages[0] && qaMsg.messages[0].text);
+  const fullQa = await fetch(base + '/api/chat/chat1/full').then((r) => r.json());
+  check('попадание помечено источником qa', (fullQa.hits || []).some((h) => h.q === 'Какая цена наушников Ауроры?' && h.source === 'qa' && h.resolved === true));
 
   console.log('\n== Server: нерешённый запрос ==');
   const ru = await post(base + '/api/chat/chat1/message', { text: 'Гиппопотам в океане HARDFAIL' });
@@ -160,15 +177,34 @@ async function main() {
   check('второй чат отвечает', !!r5.messages[0] && !!r5.messages[0].text, r5.messages[0] && r5.messages[0].text);
   await post(base + '/api/chat/chat2/rating', { score: 3 });
 
+  console.log('\n== Server: кэш ответов ==');
+  const qCache = 'Расскажи про гарантию на технику CACHETEST';
+  const c1 = await post(base + '/api/chat/chat2/message', { text: qCache });
+  const llmCallsAfter1 = aiCalls;
+  const c2 = await post(base + '/api/chat/chat2/message', { text: qCache });
+  check('первый ответ сгенерирован (LLM)', c1.messages[0] && c1.messages[0].text.indexOf('LLM-ответ') === 0, c1.messages[0] && c1.messages[0].text);
+  check('повторный ответ взят из кэша', c2.messages[0] && c2.messages[0].text === c1.messages[0].text);
+  check('LLM не вызывалась повторно', aiCalls === llmCallsAfter1, 'calls=' + aiCalls);
+  const fullC2 = await fetch(base + '/api/chat/chat2/full').then((r) => r.json());
+  check('попадание из кэша имеет source=cache', (fullC2.hits || []).filter((h) => h.q === qCache).some((h) => h.source === 'cache'));
+
+  console.log('\n== Server: FAQ для чипов ==');
+  const faq = await fetch(base + '/api/faq').then((r) => r.json());
+  check('faq отдаёт вопросы', Array.isArray(faq.items) && faq.items.length >= 1, JSON.stringify(faq.items));
+  check('faq содержит вопрос из Q&A', faq.items.some((i) => String(i.q).toLowerCase() === 'сколько стоят наушники aurora x?'), JSON.stringify(faq.items));
+
   console.log('\n== Server: статистика ==');
   const stats = await fetch(base + '/api/stats').then((r) => r.json());
   check('stats.sites', stats.totalSites >= 2, stats.totalSites);
   check('stats.answers', stats.answers >= 4, stats.answers);
   check('stats.unresolved >= 1', stats.unresolved >= 1, stats.unresolved);
   check('stats.ratings.avg = 4', stats.ratings.avg === 4, stats.ratings.avg);
-  check('stats.popular содержит запрос', stats.popular.some((p) => p.q === 'сколько стоят наушники aurora x?'), JSON.stringify(stats.popular));
+  check('stats.popular содержит запрос', stats.popular.some((p) => String(p.q).toLowerCase() === 'сколько стоят наушники aurora x?'), JSON.stringify(stats.popular));
   check('stats.unresolvedQueries', stats.unresolvedQueries.length >= 1 && stats.unresolvedQueries[0].q === 'Гиппопотам в океане HARDFAIL', JSON.stringify(stats.unresolvedQueries[0]));
   check('stats.ai.instructionsSet после PUT', stats.ai.instructionsSet === true && stats.ai.model === 'test-model-2', stats.ai.model);
+  check('stats.ai.qaCount после PUT', stats.ai.qaCount === 1, stats.ai.qaCount);
+  check('stats.cache.size >= 1', stats.cache.size >= 1, stats.cache.size);
+  check('stats.cache.hits >= 1', stats.cache.hits >= 1, stats.cache.hits);
 
   const logFile = path.join(TMP, 'chatlog.ndjson');
   const logLines = fs.readFileSync(logFile, 'utf8').split('\n').filter(Boolean);

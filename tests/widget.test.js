@@ -126,6 +126,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (u.pathname === '/api/faq' && req.method === 'GET') {
+    jsonRes(res, 200, { items: [{ q: 'Сколько стоят наушники Aurora X?', source: 'qa' }] });
+    return;
+  }
+
   const cm = u.pathname.match(/^\/api\/chat\/([^/]+)\/(\w+)$/);
   if (cm) {
     const chatId = decodeURIComponent(cm[1]);
@@ -392,6 +397,19 @@ async function main() {
     return last && last.textContent.indexOf('ответ сервера') !== -1;
   }, { timeout: 10000 });
   check('запрос уходит на сервер', !!lastMessage && lastMessage.text === 'Сколько стоят наушники?', lastMessage && lastMessage.text);
+
+  await page.waitForFunction(() => {
+    const chips = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.chip');
+    return chips.length && Array.from(chips).some((c) => c.textContent.indexOf('Aurora') !== -1);
+  }, { timeout: 8000 });
+  check('чипы: частые вопросы подгружены с сервера (/api/faq)', true);
+  await page.evaluate(() => {
+    const chips = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.chip');
+    const chip = Array.from(chips).find((c) => c.textContent.indexOf('Aurora') !== -1);
+    chip.click();
+  });
+  await new Promise((r) => setTimeout(r, 500));
+  check('клик по чипу отправляет частый вопрос', !!lastMessage && lastMessage.text === 'Сколько стоят наушники Aurora X?', lastMessage && lastMessage.text);
 
   await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-op]').click(); });
   await new Promise((r) => setTimeout(r, 600));

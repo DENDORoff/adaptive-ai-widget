@@ -16,6 +16,52 @@ function uniqueArr(a) {
   return Object.keys(o);
 }
 
+function normalize(s) {
+  return String(s || '').toLowerCase().replace(/[^a-zа-яё0-9\s]/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function tokenMatch(a, b) {
+  if (a === b) return true;
+  if (a.length < 4 || b.length < 4) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  const need = Math.max(3, Math.floor(Math.min(a.length, b.length) * 0.6));
+  return i >= need;
+}
+
+function qaSimilarity(q, item) {
+  const qTokens = uniqueArr(terms(q));
+  const aTokens = uniqueArr(terms(String(item.q) + ' ' + (item.keys || []).join(' ')));
+  const nq = normalize(q);
+  const nItem = normalize(item.q);
+  if (!qTokens.length) return 0;
+  if (nq && nq === nItem) return 1;
+  let matched = 0;
+  qTokens.forEach((w) => { if (aTokens.some((t) => tokenMatch(w, t))) matched++; });
+  const dice = (2 * matched) / Math.max(1, qTokens.length + aTokens.length);
+  const precision = matched / Math.max(1, qTokens.length);
+  let score = Math.max(dice, precision);
+  if (nq && nItem && (nq.indexOf(nItem) !== -1 || nItem.indexOf(nq) !== -1)) score = Math.max(score, 0.75);
+  return score;
+}
+
+function matchQA(cfg, q) {
+  const thr = (typeof cfg.qaThreshold === 'number' && cfg.qaThreshold > 0 && cfg.qaThreshold <= 0.99) ? cfg.qaThreshold : 0.45;
+  let best = null;
+  let bestScore = 0;
+  (cfg.qa || []).forEach((item) => {
+    if (!item || !item.a) return;
+    const s = qaSimilarity(q, item);
+    if (s > bestScore) { bestScore = s; best = item; }
+  });
+  if (best && bestScore >= thr) return { text: best.a, source: 'qa', score: Math.round(bestScore * 100) / 100 };
+  return null;
+}
+
+function cacheKey(q) {
+  return normalize(q);
+}
+
 function indexItems(knowledge) {
   return knowledge.map((item) => {
     const t = uniqueArr(tokenize(item.title));
@@ -97,4 +143,4 @@ async function answer(cfg, chat, q, instructions) {
   return { text: null, source: null };
 }
 
-module.exports = { answer, buildPrompt, findBest, contextFor, tokenize, terms };
+module.exports = { answer, buildPrompt, findBest, contextFor, tokenize, terms, matchQA, qaSimilarity, normalize, cacheKey };

@@ -24,6 +24,8 @@ function loadConfig() {
     adminToken: process.env.AW_ADMIN_TOKEN || '',
     instructions: '',
     askEmail: true,
+    qa: [],
+    qaThreshold: 0.45,
     smtp: null
   };
   try {
@@ -48,6 +50,43 @@ function saveConfigFile() {
 
 const CFG = loadConfig();
 mailer.configure(CFG);
+
+const CACHE_FILE = path.join(store.DATA_DIR, 'answers-cache.json');
+const CACHE = { entries: {}, hits: 0 };
+
+function loadCache() {
+  try {
+    if (fs.existsSync(CACHE_FILE)) Object.assign(CACHE.entries, JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')));
+  } catch (e) { CACHE.entries = {}; }
+}
+
+function saveCache() {
+  try {
+    if (!fs.existsSync(path.dirname(CACHE_FILE))) fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(CACHE.entries, null, 2));
+  } catch (e) { console.error('[server] cache не сохранён:', e.message); }
+}
+
+function cacheGet(q) {
+  const k = ai.cacheKey(q);
+  const e = k && CACHE.entries[k];
+  if (!e) return null;
+  e.count = (e.count || 0) + 1;
+  CACHE.hits++;
+  saveCache();
+  return { text: e.text, source: 'cache' };
+}
+
+function cacheSet(q, text) {
+  const k = ai.cacheKey(q);
+  if (!k || !text) return;
+  CACHE.entries[k] = { q: String(q).slice(0, 200), text, count: (CACHE.entries[k] || {}).count || 0, ts: now() };
+  const keys = Object.keys(CACHE.entries);
+  if (keys.length > 500) delete CACHE.entries[keys[0]];
+  saveCache();
+}
+
+loadCache();
 
 const SSE_CLIENTS = Object.create(null);
 
@@ -111,9 +150,12 @@ function computeStats() {
   const popularMap = {};
   queryList.forEach((q) => {
     const k = String(q || '').trim().toLowerCase();
-    if (k) popularMap[k] = (popularMap[k] || 0) + 1;
+    if (k) {
+      if (!popularMap[k]) popularMap[k] = { q: String(q).trim().slice(0, 120), count: 0 };
+      popularMap[k].count++;
+    }
   });
-  const popular = Object.keys(popularMap).map((q) => ({ q, count: popularMap[q] })).sort((a, b) => b.count - a.count).slice(0, 10);
+  const popular = Object.keys(popularMap).map((k) => popularMap[k]).sort((a, b) => b.count - a.count).slice(0, 10);
   unresolvedList.reverse();
   return {
     generatedAt: now(),
@@ -126,7 +168,8 @@ function computeStats() {
     ratings: { count: ratedCount, avg: ratedCount ? ratingSum / ratedCount : 0 },
     popular,
     unresolvedQueries: unresolvedList.slice(0, 25),
-    ai: { provider: CFG.provider, endpoint: CFG.endpoint, model: CFG.model, from: mailer.from, instructionsSet: !!CFG.instructions }
+    ai: { provider: CFG.provider, endpoint: CFG.endpoint, model: CFG.model, from: mailer.from, instructionsSet: !!CFG.instructions, qaCount: (CFG.qa || []).length, qaThreshold: CFG.qaThreshold },
+    cache: { size: Object.keys(CACHE.entries).length, hits: CACHE.hits }
   };
 }
 
@@ -138,7 +181,9 @@ function publicConfig() {
     apiKey: CFG.apiKey ? String(CFG.apiKey).slice(0, 3) + '…' + String(CFG.apiKey).slice(-4) : '',
     from: CFG.from,
     instructions: CFG.instructions || '',
-    askEmail: CFG.askEmail !== undefined ? !!CFG.askEmail : true
+    askEmail: CFG.askEmail !== undefined ? !!CFG.askEmail : true,
+    qa: (CFG.qa || []).slice(0, 200).map((x) => ({ q: x.q || '', a: x.a || '', keys: Array.isArray(x.keys) ? x.keys.slice(0, 20) : [] })),
+    qaThreshold: CFG.qaThreshold
   };
 }
 
@@ -253,6 +298,20 @@ async function handle(req, res) {
     return json(res, 200, computeStats());
   }
 
+  if (u.pathname === '/api/faq' && req.method === 'GET') {
+    const seen = new Set();
+    const items = [];
+    const push = (q, source) => {
+      const k = ai.cacheKey(q);
+      if (!q || !k || seen.has(k)) return;
+      seen.add(k);
+      items.push({ q: String(q).slice(0, 120), source });
+    };
+    computeStats().popular.forEach((p) => push(p.q, 'popular'));
+    (CFG.qa || []).forEach((item) => { if (item && item.q) push(item.q, 'qa'); });
+    return json(res, 200, { items: items.slice(0, 8) });
+  }
+
   if (u.pathname === '/api/config' && req.method === 'GET') {
     if (!adminGuard(req, res)) return;
     return json(res, 200, publicConfig());
@@ -267,6 +326,14 @@ async function handle(req, res) {
     });
     if (typeof body.apiKey === 'string' && body.apiKey.trim()) CFG.apiKey = body.apiKey.trim();
     if (body.askEmail !== undefined) CFG.askEmail = !!body.askEmail;
+    if (Array.isArray(body.qa)) {
+      CFG.qa = body.qa.slice(0, 300).map((x) => ({
+        q: String(x.q || '').trim().slice(0, 300),
+        a: String(x.a || '').trim().slice(0, 2000),
+        keys: Array.isArray(x.keys) ? x.keys.map((k) => String(k).trim().slice(0, 40)).filter(Boolean).slice(0, 20) : []
+      })).filter((x) => x.q && x.a);
+    }
+    if (typeof body.qaThreshold === 'number' && isFinite(body.qaThreshold)) CFG.qaThreshold = Math.min(0.99, Math.max(0, body.qaThreshold));
     if (CFG.from !== oldFrom) mailer.configure(CFG);
     const persisted = saveConfigFile();
     logChat('config_changed', 'global', { fields: Object.keys(body).join(','), persisted });
@@ -308,7 +375,16 @@ async function handle(req, res) {
 
       let out = [];
       if (chat.status === 'ai') {
-        const a = await ai.answer(CFG, chat, text, chat.instructions || CFG.instructions);
+        let a = cacheGet(text);
+        if (!a) {
+          const qa = ai.matchQA(CFG, text);
+          if (qa) { a = qa; cacheSet(text, qa.text); }
+        }
+        if (!a) {
+          a = await ai.answer(CFG, chat, text, chat.instructions || CFG.instructions);
+          if (a.text) cacheSet(text, a.text);
+        }
+        if (!a) a = { text: null, source: null };
         chat.lastAnswerSource = a.source || null;
         chat.hits = chat.hits || [];
         chat.hits.push({ q: text, resolved: !!a.text, source: a.source || null, site: chat.siteName || '', ts: now() });
