@@ -501,7 +501,7 @@
 
   function markup() {
     return '<button class="fab" title="' + T.title + '" aria-label="' + T.title + '">' + SVG_ICON + '</button>' +
-      '<div class="teaser" style="display:none">' + (CONFIG.teaser || T.preview) + '<button class="x">✕</button></div>' +
+      '<div class="teaser" style="display:none">' + safeHtml(CONFIG.teaser || T.preview) + '<button class="x">✕</button></div>' +
       '<div class="panel">' +
       '<div class="head">' +
       '<div class="ava">' + SVG_ICON + '</div>' +
@@ -735,7 +735,7 @@
     });
     var opBtn = shadow.querySelector('[data-op]');
     if (opBtn) opBtn.addEventListener('click', doHandoff);
-    addMsg('Привет! ' + CONFIG.siteName + '. Спросите меня о товарах, доставке или возврате — я отвечаю данными этого сайта.', 'bot');
+    addMsg((I18N_EN ? 'Hi! I am ' : 'Привет! ') + CONFIG.siteName + (I18N_EN ? '. Ask me about products, delivery or returns — I answer with real data from this site.' : '. Спросите меня о товарах, доставке или возврате — я отвечаю данными этого сайта.'), 'bot');
     if (CONFIG.aiEnabled || CONFIG.backend) checkAI();
     if (CONFIG.backend) {
       if (!CHAT.id) CHAT.id = 'c_' + Math.random().toString(36).slice(2, 10);

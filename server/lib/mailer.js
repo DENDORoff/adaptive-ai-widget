@@ -11,7 +11,7 @@ let handler = null;
 
 function configure(cfg) {
   handler = (cfg && cfg.smtp && cfg.smtp.host) ? 'smtp' : 'file';
-  module.exports.from = (cfg && cfg.smtp && cfg.smtp.from) || DEFAULT_FROM;
+  module.exports.from = (cfg && cfg.smtp && cfg.smtp.from) || (cfg && cfg.from) || DEFAULT_FROM;
 }
 
 function ensure() {

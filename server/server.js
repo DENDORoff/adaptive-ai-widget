@@ -9,6 +9,8 @@ const mailer = require('./lib/mailer');
 const ai = require('./lib/ai');
 
 const ADMIN_DIR = path.join(__dirname, '..', 'admin');
+const DEMO_DIR = path.join(__dirname, '..', 'demo');
+const WIDGET_DIR = path.join(__dirname, '..', 'widget');
 
 const CFG_PATH = process.env.AW_CONFIG || path.join(__dirname, 'config.json');
 
@@ -71,7 +73,7 @@ function json(res, code, data) {
   res.writeHead(code, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-admin-token'
   });
   res.end(JSON.stringify(data));
@@ -165,6 +167,17 @@ function serveAdmin(res, p) {
   fs.createReadStream(fp).pipe(res);
 }
 
+function serveDir(res, p, root, prefix) {
+  let file = p;
+  if (file === prefix || file === prefix + '/') file = prefix + '/index.html';
+  const fp = path.join(root, path.normalize(file.replace(prefix, '')));
+  if (!fp.startsWith(root) || !fs.existsSync(fp)) { res.writeHead(404); res.end('not found'); return; }
+  const ext = path.extname(fp);
+  const types = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
+  res.writeHead(200, { 'Content-Type': types[ext] || 'text/plain' });
+  fs.createReadStream(fp).pipe(res);
+}
+
 function adminGuard(req, res) {
   if (CFG.adminToken && req.headers['x-admin-token'] !== CFG.adminToken) { json(res, 401, { error: 'forbidden' }); return false; }
   return true;
@@ -174,9 +187,17 @@ async function handle(req, res) {
   const u = new URL(req.url, 'http://localhost');
 
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-admin-token' });
+    res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-admin-token' });
     res.end();
     return;
+  }
+
+  if ((u.pathname === '/demo' || u.pathname === '/demo/' || u.pathname.indexOf('/demo/') === 0) && req.method === 'GET') {
+    return serveDir(res, u.pathname, DEMO_DIR, '/demo');
+  }
+
+  if (u.pathname === '/widget/adaptive-widget.js' && req.method === 'GET') {
+    return serveDir(res, u.pathname, WIDGET_DIR, '/widget');
   }
 
   if (u.pathname === '/' || u.pathname === '/admin' || u.pathname === '/admin/' || u.pathname.indexOf('/admin/') === 0) {
@@ -254,7 +275,8 @@ async function handle(req, res) {
 
   const m = u.pathname.match(/^\/api\/chat\/([^/]+)\/([a-z]+)$/);
   if (m) {
-    const chatId = decodeURIComponent(m[1]);
+    let chatId;
+    try { chatId = decodeURIComponent(m[1]); } catch (e) { return json(res, 400, { error: 'bad chat id' }); }
     const action = m[2];
     const chat = store.getChat(chatId);
 

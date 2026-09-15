@@ -4,8 +4,9 @@
   "private": true,
   "description": "Тесты для адаптивного ИИ-виджета",
   "scripts": {
-    "test": "node tests/server.test.js && node tests/widget.test.js",
+    "test": "node tests/server.test.js && node tests/auth.test.js && node tests/widget.test.js",
     "test:server": "node tests/server.test.js",
+    "test:auth": "node tests/auth.test.js",
     "test:widget": "node tests/widget.test.js"
   },
   "devDependencies": {

@@ -215,7 +215,16 @@
   }
 
   async function api(url, opt) {
-    const r = await fetch(url, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opt));
+    const token = (function () { try { return localStorage.getItem('aw_token|' + location.host) || ''; } catch (e) { return ''; } })();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['x-admin-token'] = token;
+    const r = await fetch(url, Object.assign({ headers }, opt));
+    if (r.status === 401) {
+      const asked = prompt('Сервер требует пароль оператора:');
+      if (!asked) throw new Error('нет доступа');
+      try { localStorage.setItem('aw_token|' + location.host, asked.trim()); } catch (e) {}
+      return api(url, opt);
+    }
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
   }
