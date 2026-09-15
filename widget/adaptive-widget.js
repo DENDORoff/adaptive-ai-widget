@@ -10,6 +10,11 @@
     model: '',
     provider: 'auto',
     aiEnabled: true,
+    backend: '',
+    askEmail: false,
+    supportEmail: 'support@deworld.su',
+    showConfig: true,
+    instructions: '',
     autoOpen: true,
     teaser: ''
   };
@@ -57,6 +62,22 @@
   }
   resolveBackend();
 
+  var LS = {
+    get: function (k) { try { return window.localStorage ? localStorage.getItem(k) : null; } catch (e) { return null; } },
+    set: function (k, v) { try { if (window.localStorage) localStorage.setItem(k, v); } catch (e) {} }
+  };
+  var CHAT = { id: '', email: '', human: false, seen: {}, es: null };
+  (function initChat() {
+    if (!CONFIG.backend) return;
+    if (CUSTOM.askEmail === undefined) CONFIG.askEmail = true;
+    var key = 'pw_chatid|' + (location.hostname || '');
+    CHAT.id = LS.get(key) || '';
+    if (!CHAT.id) { CHAT.id = 'c_' + Math.random().toString(36).slice(2, 10); LS.set(key, CHAT.id); }
+    CHAT.email = LS.get('pw_email') || '';
+    var saved = LS.get('pw_instr');
+    if (saved) CONFIG.instructions = saved;
+  })();
+
   var LANG = (document.documentElement.lang || 'ru').slice(0, 2).toLowerCase();
   if (CONFIG.lang && CONFIG.lang.length === 2) LANG = CONFIG.lang;
   var I18N_EN = LANG === 'en';
@@ -69,7 +90,22 @@
     chips: 'Popular questions',
     source: 'Source',
     close: 'Close',
-    preview: 'Hi! I am an AI agent for this site. Try asking about products, delivery or returns.'
+    preview: 'Hi! I am an AI agent for this site. Try asking about products, delivery or returns.',
+    operator: 'Operator',
+    handoff: 'I am connecting you to a support operator. They will reply here or to your email.',
+    operatorWait: 'Message sent to the operator. They will reply here or to your email.',
+    offlineOperator: 'Please contact support: ',
+    emailAsk: 'Leave your email so we can reply even if you close this tab:',
+    emailDone: 'Thanks! Now answers can also be sent to your email.',
+    emailBad: 'That does not look like an email. Please enter it again:',
+    settings: 'AI settings',
+    instrTitle: 'Instructions (applied to AI answers)',
+    instrSave: 'Save instructions',
+    instrSaved: 'Instructions saved',
+    promptTitle: 'Prompt sent to the model',
+    knowTitle: 'Data collected from the site',
+    knowRefresh: 'Re-collect site data',
+    operatorBtn: 'Talk to a human'
   } : {
     title: 'Ассистент сайта',
     status: 'отвечаю по реальным данным',
@@ -79,7 +115,22 @@
     chips: 'Частые вопросы',
     source: 'Источник',
     close: 'Закрыть',
-    preview: 'Привет! Я ИИ-агент этого сайта. Спросите меня о товарах, доставке или возврате.'
+    preview: 'Привет! Я ИИ-агент этого сайта. Спросите меня о товарах, доставке или возврате.',
+    operator: 'Оператор',
+    handoff: 'Переключаю вас на оператора поддержки. Он ответит здесь или на вашу почту.',
+    operatorWait: 'Сообщение передано оператору. Он ответит здесь или на вашу почту.',
+    offlineOperator: 'Свяжитесь с нами напрямую: ',
+    emailAsk: 'Оставьте ваш email, чтобы мы могли ответить, даже если вы закроете эту вкладку:',
+    emailDone: 'Спасибо! Теперь ответы могут приходить и на вашу почту.',
+    emailBad: 'Похоже, это не email. Введите почту ещё раз:',
+    settings: 'Настройки ИИ',
+    instrTitle: 'Инструкции (применяются к ответам ИИ)',
+    instrSave: 'Сохранить инструкции',
+    instrSaved: 'Инструкции сохранены',
+    promptTitle: 'Промпт, который получает модель',
+    knowTitle: 'Данные, собранные с сайта',
+    knowRefresh: 'Пересобрать данные сайта',
+    operatorBtn: 'Оператор'
   };
 
   var PALETTE = { primary: '#2563eb', accent: '#312e81', bg: '#ffffff', fg: '#111827', font: 'system-ui', radius: 14, dark: false, logo: '' };
@@ -358,9 +409,14 @@
     return ids.map(function (id) { return '[' + KNOW[id].title + '] ' + KNOW[id].content; }).join('\n\n');
   }
 
+  function systemPromptBase(q) {
+    return 'Ты — ИИ-агент сайта «' + CONFIG.siteName + '». Отвечай кратко, дружелюбно, только на основе данных сайта. Если ответа нет — честно скажи, что не знаешь, и предложи связаться с поддержкой.\n\nДанные сайта:\n' + context(q);
+  }
+
   function aiAnswer(q) {
     if (!CONFIG.aiEnabled) return Promise.resolve(null);
-    var sysMsg = 'Ты — ИИ-агент сайта «' + CONFIG.siteName + '». Отвечай кратко, дружелюбно, только на основе данных сайта. Если ответа нет — честно скажи, что не знаешь, и предложи связаться с поддержкой.\n\nДанные сайта:\n' + context(q);
+    var sysMsg = systemPromptBase(q);
+    if (CONFIG.instructions) sysMsg += '\n\nДополнительные инструкции от поддержки:\n' + CONFIG.instructions;
     var headers = { 'Content-Type': 'application/json' };
     if (CONFIG.apiKey) headers['Authorization'] = 'Bearer ' + CONFIG.apiKey;
     return fetch(BACKEND.endpoint, {
@@ -394,6 +450,8 @@
   var SVG_ICON = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="2.5"/><path d="M12 8v-1M9 3l1.5 4M15 3l-1.5 4"/><circle cx="9.2" cy="12.6" r="1"/><circle cx="14.8" cy="12.6" r="1"/><path d="M9.5 16.2c.8.6 4 .6 5 0"/></svg>';
   var SVG_SEND = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
   var SVG_CLOSE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+  var SVG_OP = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="2.5" y="13" width="4" height="6" rx="1.5"/><rect x="17.5" y="13" width="4" height="6" rx="1.5"/></svg>';
+  var SVG_GEAR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33 1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 
   function cssText() {
     var dark = PALETTE.dark;
@@ -422,6 +480,20 @@
       '.head .s{font-size:11.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
       '.close{background:none;border:none;color:#fff;cursor:pointer;opacity:.8;padding:4px;}',
       '.close:hover{opacity:1;}',
+      '.op-btn,.gear{background:none;border:none;color:#fff;cursor:pointer;opacity:.85;padding:4px;flex:0 0 auto;}',
+      '.op-btn:hover,.gear:hover{opacity:1;}',
+      '.op-btn.on{opacity:1;padding:3px;border-radius:8px;background:rgba(255,255,255,.18);}',
+      '.cfg{position:absolute;top:0;left:0;right:0;bottom:0;background:' + panelBg + ';z-index:5;padding:16px;overflow-y:auto;display:none;}',
+      '.cfg.open{display:block;}',
+      '.cfg h4{margin:0 0 10px;font-size:14px;}',
+      '.cfg label{display:block;font-size:11.5px;color:' + sub + ';margin:12px 0 4px;}',
+      '.cfg textarea{width:100%;min-height:64px;border:1px solid ' + (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)') + ';background:transparent;color:' + panelText + ';border-radius:10px;padding:8px 10px;font-size:12.5px;resize:vertical;outline:none;font-family:inherit;}',
+      '.cfg textarea[readonly]{color:' + sub + ';}',
+      '.cfg textarea:focus{border-color:' + PALETTE.primary + ';}',
+      '.cfg .know{max-height:150px;overflow:auto;border:1px solid ' + (dark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.08)') + ';border-radius:10px;padding:8px 10px;font-size:12px;color:' + panelText + ';}',
+      '.cfg .know .k{margin-bottom:4px;opacity:.9;}',
+      '.cfg button{border:none;background:' + PALETTE.primary + ';color:#fff;border-radius:10px;padding:8px 12px;font-size:12.5px;cursor:pointer;margin-top:8px;margin-right:6px;}',
+      '.cfg .hint{font-size:11.5px;color:' + sub + ';margin-top:8px;}',
       '.chips{padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';}',
       '.chips .lbl{width:100%;font-size:11.5px;color:' + sub + ';margin-bottom:2px;}',
       '.chip{border:1px solid ' + (dark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.12)') + ';background:' + chipBg + ';color:' + chipText + ';border-radius:100px;padding:5px 11px;font-size:12.5px;cursor:pointer;transition:background .15s;}',
@@ -455,7 +527,21 @@
       '<div class="head">' +
       '<div class="ava">' + SVG_ICON + '</div>' +
       '<div class="titles"><div class="t">' + T.title + '</div><div class="s">' + T.status + '</div></div>' +
+      '<button class="op-btn" data-op title="' + T.operatorBtn + '">' + SVG_OP + '</button>' +
+      (CONFIG.showConfig ? '<button class="gear" data-gear title="' + T.settings + '">' + SVG_GEAR + '</button>' : '') +
       '<button class="close" aria-label="' + T.close + '">' + SVG_CLOSE + '</button>' +
+      '</div>' +
+      '<div class="cfg" data-cfg>' +
+      '<h4>' + T.settings + '</h4>' +
+      '<label>' + T.instrTitle + '</label>' +
+      '<textarea data-instr placeholder="..."></textarea>' +
+      '<button data-save>' + T.instrSave + '</button>' +
+      '<button data-reknow>' + T.knowRefresh + '</button>' +
+      '<label>' + T.promptTitle + '</label>' +
+      '<textarea data-prompt readonly></textarea>' +
+      '<label data-know-lbl>' + T.knowTitle + '</label>' +
+      '<div class="know" data-know></div>' +
+      '<div class="hint" style="margin-top:10px">' + T.fallback + '</div>' +
       '</div>' +
       '<div class="chips"><div class="lbl">' + T.chips + '</div><div data-chips></div></div>' +
       '<div class="msgs"></div>' +
@@ -500,18 +586,165 @@
     box.innerHTML = items.map(function (t) { return '<button class="chip">' + safeHtml(t.length > 42 ? t.slice(0, 42) + '…' : t) + '</button>'; }).join('');
   }
 
-  function ask(q) {
-    q = String(q || '').trim();
-    if (!q) return;
-    addMsg(q, 'user');
-    inputEl.value = '';
-    typing(true);
+  var CONFIG_MODE = '';
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function statusOk(text, color) {
+    var s = shadow.querySelector('.s');
+    if (!s) return;
+    s.textContent = text;
+    if (color) s.style.color = color;
+  }
+
+  function renderServerMsg(m) {
+    if (CHAT.seen[m.id]) return;
+    CHAT.seen[m.id] = 1;
+    addMsg(m.text, 'bot', m.from === 'agent' ? T.operator : T.title);
+  }
+
+  function submitEmail(v) {
+    if (!EMAIL_RE.test(v)) { addMsg(T.emailBad, 'bot'); return; }
+    CHAT.email = v.toLowerCase();
+    LS.set('pw_email', CHAT.email);
+    addMsg(v, 'user');
+    inputEl.placeholder = T.input;
+    CONFIG_MODE = '';
+    addMsg(T.emailDone, 'bot');
+    if (CONFIG.backend && CHAT.id) initBackend();
+  }
+
+  function askForEmail() {
+    CONFIG_MODE = 'email';
+    addMsg(T.emailAsk, 'bot');
+    inputEl.placeholder = 'you@example.com';
+  }
+
+  function backendAsk(q) {
+    fetch(CONFIG.backend + '/api/chat/' + encodeURIComponent(CHAT.id) + '/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: q })
+    }).then(function (r) {
+      if (!r.ok) throw new Error();
+      return r.json();
+    }).then(function (resp) {
+      typing(false);
+      (resp.messages || []).forEach(renderServerMsg);
+      if (resp.mode === 'human' && !(resp.messages || []).length) addMsg(T.operatorWait, 'bot');
+    }).catch(function () {
+      typing(false);
+      addMsg(T.fallback, 'bot');
+    });
+  }
+
+  function offlineAsk(q) {
     aiAnswer(q).then(function (ai) {
       typing(false);
       setTimeout(function () {
         addMsg((ai || answerText(q).text), 'bot');
       }, 220);
     });
+  }
+
+  function ask(q) {
+    q = String(q || '').trim();
+    if (!q) return;
+    if (CONFIG_MODE === 'email') { submitEmail(q); return; }
+    addMsg(q, 'user');
+    inputEl.value = '';
+    typing(true);
+    if (CONFIG.backend && CHAT.id) backendAsk(q);
+    else offlineAsk(q);
+  }
+
+  function doHandoff() {
+    var op = shadow.querySelector('[data-op]');
+    if (CHAT.human) return;
+    if (!CONFIG.backend) {
+      addMsg(T.offlineOperator + CONFIG.supportEmail, 'bot');
+      return;
+    }
+    CHAT.human = true;
+    if (op) op.classList.add('on');
+    addMsg(T.handoff, 'bot');
+    fetch(CONFIG.backend + '/api/chat/' + encodeURIComponent(CHAT.id) + '/handoff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    }).then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+      .catch(function () { CHAT.human = false; if (op) op.classList.remove('on'); addMsg(T.fallback, 'bot'); });
+  }
+
+  function connectSSE() {
+    if (CHAT.es) { try { CHAT.es.close(); } catch (e) {} }
+    try {
+      var es = new EventSource(CONFIG.backend + '/api/chat/' + encodeURIComponent(CHAT.id) + '/events');
+      CHAT.es = es;
+      es.addEventListener('reply', function (e) { try { renderServerMsg(JSON.parse(e.data)); } catch (err) {} });
+      es.addEventListener('mode', function (e) {
+        try {
+          var m = JSON.parse(e.data);
+          if (m.mode === 'human') CHAT.human = true;
+          else if (m.mode === 'ai') CHAT.human = false;
+        } catch (err) {}
+      });
+    } catch (e) {}
+  }
+
+  function initBackend() {
+    var payload = {
+      chatId: CHAT.id,
+      email: CHAT.email,
+      siteName: CONFIG.siteName,
+      page: location.href,
+      knowledge: KNOW.map(function (i) { return { title: i.title, content: i.content }; }).slice(0, 80),
+      prompt: systemPromptBase(''),
+      instructions: CONFIG.instructions
+    };
+    fetch(CONFIG.backend + '/api/init', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) {
+      if (!r.ok) throw new Error();
+      return r.json();
+    }).then(function () {
+      connectSSE();
+      statusOk('чат подключён · поддержка', '#4ade80');
+    }).catch(function () {
+      statusOk('сервер чата недоступен', '#f87171');
+    });
+  }
+
+  function fillSettings() {
+    var instr = shadow.querySelector('[data-instr]');
+    var promptI = shadow.querySelector('[data-prompt]');
+    var knowBox = shadow.querySelector('[data-know]');
+    var knowLbl = shadow.querySelector('[data-know-lbl]');
+    if (!instr || !promptI || !knowBox) return;
+    instr.value = CONFIG.instructions || '';
+    promptI.value = systemPromptBase('');
+    knowLbl.textContent = T.knowTitle + ' (' + KNOW.length + ')';
+    knowBox.innerHTML = KNOW.slice(0, 14).map(function (k) {
+      return '<div class="k">• ' + safeHtml(String(k.title).slice(0, 60)) + '</div>';
+    }).join('') || '<div class="hint">—</div>';
+  }
+
+  function toggleSettings(forceOpen) {
+    var cfg = shadow.querySelector('[data-cfg]');
+    if (!cfg) return;
+    var open = forceOpen !== undefined ? forceOpen : !cfg.classList.contains('open');
+    if (open) fillSettings();
+    cfg.classList.toggle('open', open);
+  }
+
+  function reExtract() {
+    KNOW.length = 0;
+    buildKnowledge();
+    indexKnowledge();
+    pushChips();
+    fillSettings();
+    if (CONFIG.backend && CHAT.id) initBackend();
   }
 
   function wire() {
@@ -533,13 +766,55 @@
       var chip = e.target.closest('.chip');
       if (chip) ask(chip.textContent);
     });
+    var opBtn = shadow.querySelector('[data-op]');
+    if (opBtn) opBtn.addEventListener('click', doHandoff);
+    var gear = shadow.querySelector('[data-gear]');
+    if (gear) gear.addEventListener('click', function () { toggleSettings(); });
+    var cfgBtn = shadow.querySelector('[data-cfg]');
+    if (cfgBtn) {
+      var saveBtn = shadow.querySelector('[data-save]');
+      if (saveBtn) saveBtn.addEventListener('click', function () {
+        var v = shadow.querySelector('[data-instr]').value;
+        CONFIG.instructions = v.trim();
+        LS.set('pw_instr', CONFIG.instructions);
+        if (CONFIG.backend && CHAT.id) {
+          fetch(CONFIG.backend + '/api/chat/' + encodeURIComponent(CHAT.id) + '/instructions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instructions: CONFIG.instructions })
+          }).catch(function () {});
+        }
+        statusOk(T.instrSaved, '#4ade80');
+      });
+      var reBtn = shadow.querySelector('[data-reknow]');
+      if (reBtn) reBtn.addEventListener('click', reExtract);
+    }
     addMsg('Привет! ' + CONFIG.siteName + '. Спросите меня о товарах, доставке или возврате — я отвечаю данными этого сайта.', 'bot');
-    if (CONFIG.aiEnabled) checkAI();
+    if (CONFIG.aiEnabled || CONFIG.backend) checkAI();
+    if (CONFIG.backend) {
+      if (!CHAT.id) CHAT.id = 'c_' + Math.random().toString(36).slice(2, 10);
+      if (!CHAT.email && CONFIG.askEmail) CONFIG_MODE = 'pending-email';
+      else initBackend();
+    } else if (CONFIG.askEmail && !CHAT.email) {
+      CONFIG_MODE = 'pending-email';
+    }
   }
 
   function checkAI() {
     var statusEl = shadow.querySelector('.s');
     if (!statusEl) return;
+    if (CONFIG.backend) {
+      statusEl.textContent = 'подключаюсь...';
+      fetch(CONFIG.backend + '/api/health').then(function (r) {
+        if (!r.ok) throw new Error();
+        statusEl.textContent = 'поддержка онлайн';
+        statusEl.style.color = '#4ade80';
+      }).catch(function () {
+        statusEl.textContent = 'сервер чата недоступен';
+        statusEl.style.color = '#f87171';
+      });
+      return;
+    }
     if (BACKEND.provider !== 'ollama') {
       if (!CONFIG.apiKey) {
         statusEl.textContent = 'AI: ' + BACKEND.label + ' — нужен apiKey';
@@ -572,7 +847,10 @@
 
   function toggle() {
     if (panelEl.classList.contains('open')) panelEl.classList.remove('open');
-    else { panelEl.classList.add('open'); }
+    else {
+      panelEl.classList.add('open');
+      if (CONFIG_MODE === 'pending-email') { CONFIG_MODE = ''; askForEmail(); }
+    }
   }
 
   function boot() {

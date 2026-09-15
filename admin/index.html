@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaptive Widget — поддержка</title>
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel2: #111827;
+    --line: rgba(148,163,184,.15); --text: #e2e8f0; --sub: #94a3b8;
+    --brand: #6366f1; --green: #4ade80; --yellow: #fbbf24; --red: #f87171; --violet: #a855f7;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", Inter, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; align-items: center; gap: 14px; padding: 14px 22px; background: var(--panel2); border-bottom: 1px solid var(--line); position: sticky; top: 0; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .badge { font-size: 12px; color: var(--sub); }
+  .wrap { display: flex; min-height: calc(100vh - 57px); }
+  .list { width: 340px; border-right: 1px solid var(--line); padding: 12px; overflow-y: auto; flex-shrink: 0; }
+  .chat-card { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; cursor: pointer; background: var(--panel); transition: .15s; }
+  .chat-card:hover { border-color: var(--brand); }
+  .chat-card.active { border-color: var(--brand); background: #1e2a44; }
+  .chat-card .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .chat-card .site { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-card .email { color: var(--sub); font-size: 12px; margin-bottom: 4px; }
+  .chat-card .last { color: var(--sub); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st { padding: 2px 8px; border-radius: 100px; font-size: 11px; }
+  .st.ai { background: rgba(99,102,241,.2); color: #a5b4fc; }
+  .st.human { background: rgba(168,85,247,.2); color: var(--violet); }
+  .st.closed { background: rgba(148,163,184,.2); color: var(--sub); }
+  .detail { flex: 1; padding: 16px 20px; display: flex; flex-direction: column; min-width: 0; }
+  .detail .head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .detail .head h2 { font-size: 16px; margin: 0; }
+  button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; cursor: pointer; font-size: 12.5px; }
+  button:hover { border-color: var(--brand); }
+  button.primary { background: var(--brand); border-color: var(--brand); }
+  button.danger:hover { border-color: var(--red); color: var(--red); }
+  .msgs { flex: 1; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); padding: 14px; max-height: 45vh; }
+  .msg { margin-bottom: 10px; display: flex; }
+  .msg .bub { max-width: 80%; padding: 8px 13px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .msg.user { justify-content: flex-end; } .msg.user .bub { background: #312e81; }
+  .msg.bot .bub { background: #1e293b; }
+  .msg.agent .bub { background: #4a1d53; border: 1px solid rgba(168,85,247,.4); }
+  .msg.system { justify-content: center; } .msg.system .bub { background: transparent; color: var(--sub); font-size: 12px; }
+  .msg .meta { display: block; font-size: 10.5px; color: var(--sub); margin-bottom: 2px; }
+  .reply { display: flex; gap: 8px; margin: 12px 0; } .reply input { flex: 1; }
+  input, textarea { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 13px; font-family: inherit; outline: none; }
+  input:focus, textarea:focus { border-color: var(--brand); }
+  .cfg { margin-top: 12px; display: grid; gap: 10px; }
+  .cfg label { font-size: 12px; color: var(--sub); display: block; margin-bottom: 4px; }
+  .cfg textarea { width: 100%; resize: vertical; min-height: 70px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .hint { color: var(--sub); font-size: 12px; }
+  .empty { color: var(--sub); text-align: center; margin-top: 60px; }
+  .toast { position: fixed; bottom: 18px; right: 18px; background: var(--panel); border: 1px solid var(--line); padding: 10px 16px; border-radius: 10px; font-size: 13px; display: none; z-index: 5; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Adaptive Widget — поддержка</h1>
+  <span class="badge" id="conn">подключение...</span>
+  <span class="badge" style="margin-left:auto">чаты обновляются автоматически</span>
+</header>
+<div class="wrap">
+  <div class="list" id="list"><div class="empty">Загрузка...</div></div>
+  <div class="detail" id="detail">
+    <div class="empty" id="empty">Выберите чат слева</div>
+    <div id="chatview" style="display:none">
+      <div class="head">
+        <h2 id="d_site"></h2>
+        <span class="st" id="d_status"></span>
+        <span class="hint" id="d_email"></span>
+        <div class="actions" style="margin-left:auto">
+          <button id="btn_takeover">Взять в операторы</button>
+          <button id="btn_ai">Вернуть ИИ</button>
+          <button class="danger" id="btn_close">Закрыть</button>
+        </div>
+      </div>
+      <div class="msgs" id="d_msgs"></div>
+      <div class="reply">
+        <input id="d_reply" placeholder="Ответ клиенту от имени оператора... Enter для отправки">
+        <button class="primary" id="btn_reply">Ответить</button>
+      </div>
+      <div class="cfg">
+        <div>
+          <label>Инструкции для ИИ в этом чате (сохраняются и применяются к следующим ответам)</label>
+          <textarea id="d_instr"></textarea>
+          <div class="actions" style="margin-top:6px"><button id="btn_instr">Сохранить инструкции</button></div>
+        </div>
+        <details>
+          <summary class="hint">Промпт и данные, которые виджет собрал с сайта</summary>
+          <div>
+            <label>Промпт (снимок с сайта)</label>
+            <textarea id="d_prompt" readonly style="color:var(--sub)"></textarea>
+          </div>
+          <div>
+            <label>Извлечённые знания (первые 12)</label>
+            <textarea id="d_know" readonly style="color:var(--sub)"></textarea>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  let chats = [];
+  let currentId = null;
+  let current = null;
+
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(t._h);
+    t._h = setTimeout(() => (t.style.display = 'none'), 2500);
+  }
+
+  async function api(url, opt) {
+    const r = await fetch(url, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opt));
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+
+  async function refreshList() {
+    try {
+      chats = await api('/api/chats');
+      $('#conn').textContent = 'онлайн · ' + chats.length + ' чатов';
+      renderList();
+    } catch (e) {
+      $('#conn').textContent = 'сервер недоступен';
+    }
+  }
+
+  function renderList() {
+    const list = $('#list');
+    if (!chats.length) { list.innerHTML = '<div class="empty">Чатов пока нет</div>'; return; }
+    list.innerHTML = chats.map((c) => {
+      const d = new Date(c.updatedAt).toLocaleString('ru-RU');
+      return '<div class="chat-card' + (c.id === currentId ? ' active' : '') + '" data-id="' + esc(c.id) + '">' +
+        '<div class="top"><span class="site">' + esc(c.siteName || 'Чат') + '</span><span class="st ' + esc(c.status) + '">' + esc(c.status) + '</span></div>' +
+        '<div class="email">' + esc(c.email || '— без почты') + '</div>' +
+        '<div class="last">' + esc(c.lastText || '…') + ' · ' + esc(d) + '</div>' +
+      '</div>';
+    }).join('');
+    list.querySelectorAll('.chat-card').forEach((el) => {
+      el.addEventListener('click', () => openChat(el.getAttribute('data-id')));
+    });
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  async function openChat(id) {
+    if (id === currentId) return loadDetail();
+    currentId = id;
+    renderList();
+    $('#empty').style.display = 'none';
+    $('#chatview').style.display = 'block';
+    await loadDetail();
+  }
+
+  async function loadDetail() {
+    try {
+      current = await api('/api/chat/' + currentId + '/full');
+      renderDetail();
+    } catch (e) { toast('Не удалось загрузить чат'); }
+  }
+
+  function renderDetail() {
+    const c = current;
+    $('#d_site').textContent = c.siteName || 'Чат ' + c.id;
+    const st = $('#d_status');
+    st.textContent = c.status;
+    st.className = 'st ' + c.status;
+    $('#d_email').textContent = '✉ ' + (c.email || '—') + ' · ' + new Date(c.createdAt).toLocaleString('ru-RU');
+    const names = { user: 'Клиент', bot: 'ИИ-агент', agent: 'Оператор', system: 'Система' };
+    $('#d_msgs').innerHTML = (c.messages || []).map((m) =>
+      '<div class="msg ' + esc(m.role) + '">' +
+        '<div class="bub"><span class="meta">' + esc(names[m.role] || m.role) + ' · ' + esc(new Date(m.ts).toLocaleTimeString('ru-RU')) + '</span>' + esc(m.text) + '</div>' +
+      '</div>'
+    ).join('') || '<div class="hint" style="text-align:center">Сообщений пока нет</div>';
+    $('#d_msgs').scrollTop = $('#d_msgs').scrollHeight;
+    $('#d_instr').value = c.instructions || '';
+    $('#d_prompt').value = c.promptSnap || '—';
+    $('#d_know').value = (c.knowledge || []).slice(0, 12).map((k) => k.title + ' :: ' + String(k.content || '').slice(0, 120)).join('\n') || '—';
+  }
+
+  $('#btn_reply').addEventListener('click', sendReply);
+  $('#d_reply').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendReply(); });
+
+  async function sendReply() {
+    const text = $('#d_reply').value.trim();
+    if (!text) return;
+    await api('/api/chat/' + currentId + '/reply', { method: 'POST', body: JSON.stringify({ text }) });
+    $('#d_reply').value = '';
+    toast('Ответ отправлен' + (current.email ? ' (если клиент офлайн — уйдёт на ' + current.email + ')' : ''));
+    loadDetail();
+  }
+
+  $('#btn_takeover').addEventListener('click', async () => {
+    await api('/api/chat/' + currentId + '/handoff', { method: 'POST', body: '{}' });
+    toast('Чат переведён на оператора');
+    loadDetail(); refreshList();
+  });
+
+  $('#btn_ai').addEventListener('click', async () => {
+    await api('/api/chat/' + currentId + '/mode', { method: 'POST', body: JSON.stringify({ mode: 'ai' }) });
+    toast('ИИ-агент возобновлён');
+    loadDetail(); refreshList();
+  });
+
+  $('#btn_close').addEventListener('click', async () => {
+    await api('/api/chat/' + currentId + '/close', { method: 'POST', body: '{}' });
+    toast('Чат закрыт');
+    loadDetail(); refreshList();
+  });
+
+  $('#btn_instr').addEventListener('click', async () => {
+    await api('/api/chat/' + currentId + '/instructions', { method: 'POST', body: JSON.stringify({ instructions: $('#d_instr').value }) });
+    toast('Инструкции сохранены');
+  });
+
+  refreshList();
+  setInterval(refreshList, 3000);
+})();
+</script>
+</body>
+</html>

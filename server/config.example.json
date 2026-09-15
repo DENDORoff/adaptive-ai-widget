@@ -1,0 +1,9 @@
+{
+  "provider": "ollama",
+  "endpoint": "http://localhost:11434/v1/chat/completions",
+  "model": "qwen2.5:3b",
+  "apiKey": "",
+  "from": "support@deworld.su",
+  "adminToken": "",
+  "smtp": null
+}

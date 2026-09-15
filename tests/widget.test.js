@@ -15,6 +15,22 @@ const widgetJs = fs.readFileSync(path.join(ROOT, 'widget', 'adaptive-widget.js')
 
 let lastAiRequest = null;
 let lastAiHeaders = null;
+let lastInit = null;
+let lastMessage = null;
+let lastHandoff = null;
+let lastInstr = null;
+const chatMode = {};
+const sseClients = Object.create(null);
+
+function pushEvent(chatId, event, data) {
+  const payload = 'event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n';
+  if (sseClients[chatId]) sseClients[chatId].forEach((res) => { try { res.write(payload); } catch (e) {} });
+}
+
+function jsonRes(res, code, data) {
+  res.writeHead(code, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data));
+}
 
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://' + HOST + ':' + PORT);
@@ -75,6 +91,75 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
     return;
+  }
+
+  if (u.pathname === '/backend') {
+    const html = indexHtml.replace("model: 'qwen2.5:3b'", "backend: 'http://localhost:11434',\n  askEmail: true,\n  siteName: 'GadgetHub'");
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
+    return;
+  }
+
+  if (u.pathname === '/api/health') {
+    jsonRes(res, 200, { ok: true, from: 'support@deworld.su' });
+    return;
+  }
+
+  if (u.pathname === '/api/init' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (c) => (body += c));
+    req.on('end', () => {
+      lastInit = JSON.parse(body);
+      if (!chatMode[lastInit.chatId]) chatMode[lastInit.chatId] = 'ai';
+      jsonRes(res, 200, { ok: true, chatId: lastInit.chatId });
+    });
+    return;
+  }
+
+  const cm = u.pathname.match(/^\/api\/chat\/([^/]+)\/(\w+)$/);
+  if (cm) {
+    const chatId = decodeURIComponent(cm[1]);
+    const action = cm[2];
+
+    if (action === 'events' && req.method === 'GET') {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.write('event: ready\ndata: {"ok":true}\n\n');
+      if (!sseClients[chatId]) sseClients[chatId] = new Set();
+      sseClients[chatId].add(res);
+      req.on('close', () => { sseClients[chatId].delete(res); });
+      return;
+    }
+
+    if (action === 'message' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (c) => (body += c));
+      req.on('end', () => {
+        lastMessage = JSON.parse(body);
+        const mode = chatMode[chatId] || 'ai';
+        if (mode === 'human') return jsonRes(res, 200, { mode, messages: [] });
+        jsonRes(res, 200, { mode, messages: [{ id: 'm_ai', from: 'bot', text: 'Стоимость по данным сайта: 7990 ₽ (ответ сервера).' }] });
+      });
+      return;
+    }
+
+    if (action === 'handoff' && req.method === 'POST') {
+      lastHandoff = chatId;
+      chatMode[chatId] = 'human';
+      jsonRes(res, 200, { ok: true, mode: 'human' });
+      return;
+    }
+
+    if (action === 'instructions' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (c) => (body += c));
+      req.on('end', () => { lastInstr = JSON.parse(body); jsonRes(res, 200, { ok: true }); });
+      return;
+    }
   }
 
   if (u.pathname === '/' || u.pathname === '/index.html') {
@@ -252,7 +337,89 @@ async function main() {
   check('отправлен Bearer-ключ', !!(lastAiHeaders && lastAiHeaders.authorization === 'Bearer sk-test-123'), lastAiHeaders && lastAiHeaders.authorization);
   check('RAG-контекст в системном промпте', !!lastAiRequest && lastAiRequest.messages[0].content.indexOf('Наушники Aurora X') !== -1);
 
+  // ---------- Тест 8: backend-режим — email, чат, оператор ----------
+  console.log('\n== Тест 8: backend-режим (email + оператор) ==');
+  await page.goto(base() + '/backend', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.shadowRoot && !!host.shadowRoot.querySelector('.fab');
+  });
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.fab').click(); });
+  await page.waitForFunction(() => {
+    const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.b .m');
+    const last = msgs[msgs.length - 1];
+    return last && last.textContent.indexOf('email') !== -1;
+  }, { timeout: 10000 });
+  check('запрос email перед чатом', true);
+
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const input = s.querySelector('.input input');
+    input.value = 'user@example.com';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  });
+  await new Promise((r) => setTimeout(r, 600));
+  check('email отправлен на сервер (init)', !!lastInit && lastInit.email === 'user@example.com', lastInit && lastInit.email);
+  check('в init переданы знания сайта', !!lastInit && lastInit.knowledge.length > 3, lastInit && lastInit.knowledge.length);
+  check('в init передан промпт (RAG)', !!lastInit && lastInit.prompt.indexOf('Данные сайта') !== -1);
+
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const input = s.querySelector('.input input');
+    input.value = 'Сколько стоят наушники?';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.b .m');
+    const last = msgs[msgs.length - 1];
+    return last && last.textContent.indexOf('ответ сервера') !== -1;
+  }, { timeout: 10000 });
+  check('запрос уходит на сервер', !!lastMessage && lastMessage.text === 'Сколько стоят наушники?', lastMessage && lastMessage.text);
+
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-op]').click(); });
+  await new Promise((r) => setTimeout(r, 600));
+  check('кнопка оператора → handoff', lastHandoff !== null);
+  const chatId = lastInit && lastInit.chatId;
+  pushEvent(chatId, 'reply', { id: 'm_op1', from: 'agent', text: 'Добрый день! Я оператор, чем помочь?' });
+
+  await page.waitForFunction(() => {
+    const names = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.b .name');
+    return Array.from(names).some((n) => n.textContent.indexOf('Оператор') !== -1);
+  }, { timeout: 10000 });
+  check('ответ оператора приходит через SSE', true);
   check('нет ошибок в консоли', pageErrors.length === 0, pageErrors.join('; '));
+
+  // ---------- Тест 9: локальные настройки ИИ в виджете ----------
+  console.log('\n== Тест 9: локальные настройки ИИ ==');
+  await page.goto(base() + '/', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.shadowRoot && !!host.shadowRoot.querySelector('[data-gear]');
+  });
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-gear]').click(); });
+  await page.waitForFunction(() => document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-cfg]').classList.contains('open'));
+  const cfgInfo = await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    return {
+      open: s.querySelector('[data-cfg]').classList.contains('open'),
+      prompt: s.querySelector('[data-prompt]').value,
+      know: s.querySelector('[data-know]').innerHTML
+    };
+  });
+  check('панель настроек открывается', cfgInfo.open);
+  check('промпт собран из данных сайта', cfgInfo.prompt.indexOf('Данные сайта') !== -1);
+  check('список знаний из скрапинга', (cfgInfo.know.match(/•/g) || []).length >= 3, cfgInfo.know);
+
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const instr = s.querySelector('[data-instr]');
+    instr.value = 'Всегда предлагайте скидку 10% новым клиентам';
+    s.querySelector('[data-save]').click();
+  });
+  await new Promise((r) => setTimeout(r, 400));
+  check('инструкции сохранены в localStorage', await page.evaluate(() => localStorage.getItem('pw_instr')) === 'Всегда предлагайте скидку 10% новым клиентам');
+
+  check('итог: нет ошибок в консоли на всей сессии', pageErrors.length === 0, pageErrors.join('; '));
 
   await browser.close();
   server.close();

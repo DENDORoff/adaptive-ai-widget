@@ -4,3 +4,5 @@ node_modules/
 Thumbs.db
 .idea/
 .vscode/
+server/config.json
+server/data/
