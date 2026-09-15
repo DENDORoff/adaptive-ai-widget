@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nebula Commerce — игровая платформа</title>
+<meta name="description" content="Nebula Commerce — платформа по продаже игровых ключей и подписок. Мгновенная доставка ключей, поддержка 24/7, возврат в течение 48 часов.">
+<style>
+  :root {
+    --brand: #f43f5e;
+    --accent: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    background: #0b0f19; color: #e2e8f0; line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(120deg, #111827, #1e1b4b);
+    color: #fff; padding: 18px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(168,85,247,.3);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; letter-spacing: .5px; }
+  .logo img { width: 34px; height: 34px; border-radius: 50%; }
+  nav a { color: #cbd5e1; text-decoration: none; margin-left: 20px; }
+  nav a:hover { color: var(--brand); }
+  main { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+  h1 { color: #fff; margin-bottom: 8px; }
+  h2 { margin: 36px 0 12px; color: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+  .product {
+    background: #12182a; border-radius: 14px; padding: 18px;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  .product img { width: 100%; border-radius: 10px; margin-bottom: 10px; }
+  .product .name { font-weight: 600; color: #fff; }
+  .product .price { color: var(--brand); font-weight: 700; margin-top: 6px; }
+  .faq-item { background: #12182a; border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,.06); }
+  .faq-item h3 { color: var(--accent); margin-bottom: 6px; }
+  .btn { display: inline-block; margin-top: 12px; background: linear-gradient(120deg, var(--brand), var(--accent)); color: #fff; padding: 12px 22px; border-radius: 10px; text-decoration: none; font-weight: 600; }
+  .btn:hover { filter: brightness(1.15); }
+  footer { text-align: center; padding: 30px; color: #475569; }
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "name": "Nebula Commerce",
+      "email": "help@nebula-games.ru",
+      "telephone": "+7 495 120 30 40"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Как быстро приходит ключ после оплаты?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Ключ приходит мгновенно на почту и в личный кабинет сразу после подтверждения оплаты." }
+        },
+        {
+          "@type": "Question",
+          "name": "Что делать, если ключ не активируется?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Напишите в чат с пометкой «Проблема с активацией». Замену выдаём в течение 30 минут, а если замена невозможна — возвращаем деньги." }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%2321357a'/%3E%3Ctext x='32' y='43' font-size='28' text-anchor='middle' fill='white'%3E★%3C/text%3E%3C/svg%3E" alt="Nebula logo">
+    Nebula Commerce
+  </div>
+  <nav>
+    <a href="#keys">Ключи</a>
+    <a href="#subscriptions">Подписки</a>
+    <a href="#faq">Вопросы</a>
+    <a href="#help">Поддержка</a>
+  </nav>
+</header>
+<main>
+  <h1>Игровая платформа Nebula Commerce</h1>
+  <p>Официальные игровые ключи и подписки со мгновенной доставкой. Наш ИИ-агент проведёт вас по сайту и ответит на любые вопросы.</p>
+
+  <h2 id="keys">Популярные ключи</h2>
+  <div class="grid">
+    <div class="product" data-product data-name="CyberRunner 2077" data-price="2490 ₽" data-desc="Ключ для Steam, активация в РФ.">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%23131040'/%3E%3Ctext x='130' y='80' font-size='16' text-anchor='middle' fill='%23a855f7'%3ECyberRunner%3C/text%3E%3C/svg%3E" alt="CyberRunner 2077">
+      <div class="name">CyberRunner 2077</div>
+      <div class="price">2490 ₽</div>
+    </div>
+    <div class="product" data-product data-name="Kingdom of Ash IV" data-price="1790 ₽" data-desc="Глобальный ключ для всех регионов.">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%231b1b4b'/%3E%3Ctext x='130' y='80' font-size='16' text-anchor='middle' fill='%23f43f5e'%3EKingdom%3C/text%3E%3C/svg%3E" alt="Kingdom of Ash IV">
+      <div class="name">Kingdom of Ash IV</div>
+      <div class="price">1790 ₽</div>
+    </div>
+  </div>
+
+  <h2 id="subscriptions">Подписки</h2>
+  <div class="product" data-product data-name="Game Pass Ultimate 1 месяц" data-price="990 ₽" data-desc="Пополнение в течение 5 минут, подходит для РФ.">
+    <div class="name">Game Pass Ultimate 1 месяц</div>
+    <div class="price">990 ₽</div>
+  </div>
+
+  <h2 id="faq">Частые вопросы</h2>
+  <div class="faq-item" data-faq>
+    <h3>Работает ли оплата картами РФ?</h3>
+    <p>Да, мы принимаем карты любых российских банков, СБП и электронные кошельки.</p>
+  </div>
+  <div class="faq-item" data-faq>
+    <h3>Даёте ли вы чеки?</h3>
+    <p>Да, после покупки чек приходит на указанную почту автоматически.</p>
+  </div>
+
+  <h2 id="help">Поддержка</h2>
+  <p>Чат: <a href="https://t.me/nebula_support">t.me/nebula_support</a> · Email: <a href="mailto:help@nebula-games.ru">help@nebula-games.ru</a> · Телефон: <a href="tel:+74951203040">+7 495 120 30 40</a><br>
+  Режим работы: 24/7</p>
+</main>
+<footer>© 2026 Nebula Commerce</footer>
+<script>
+window.ADAPTIVE_WIDGET = {
+  aiEnabled: true,
+  model: 'qwen2.5:3b'
+};
+</script>
+<script src="../widget/adaptive-widget.js"></script>
+</body>
+</html>
