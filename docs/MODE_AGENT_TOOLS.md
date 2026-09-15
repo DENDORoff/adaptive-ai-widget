@@ -24,6 +24,83 @@ node server/server.js          # порт 3000
 
 **Требование:** модель должна уметь function calling. Для Ollama это `qwen2.5:3b` (проверено вживую) и большинство `qwen3`/`llama3.1+`; для OpenAI — gpt-4o, для Groq — llama-3.3-70b.
 
+## Технические детали
+
+### Фреймворк
+
+Второй режим реализован **на собственном движке без сторонних агент-библиотек** поверх стандартного протокола **OpenAI-compatible function calling**. Ни LangChain/LangGraph, ни Vercel AI SDK в проект не подключаются — весь цикл агента (~90 строк) написан вручную в `server/lib/agent.js` на нативной Node.js (`fetch`, ноль npm-зависимостей, совместимо с Node 18+).
+
+«Фреймворком» здесь выступает сам протокол OpenAI Chat Completions: `tools` + `tool_choice` в запросе и `tool_calls` в ответе — это и есть контракт, по которому работает любой LLM-провайдер (Ollama, OpenAI, OpenRouter, Groq, Mistral и т.д.). Наш движок — тонкая обёртка над этим контрактом.
+
+Если позже захочется перейти на полноценную библиотеку (LangGraph, Vercel AI SDK, LlamaIndex), публичный контракт не изменится: сервер по-прежнему принимает `POST /api/chat/<id>/message` и отдаёт ответ пользователю.
+
+### Запрос к модели
+
+Каждый раунд агента — POST на `cfg.endpoint` (по умолчанию `http://localhost:11434/v1/chat/completions`):
+
+```json
+{
+  "model": "qwen2.5:3b",
+  "messages": [
+    { "role": "system", "content": "Ты — ИИ-агент сайта «…»…" },
+    { "role": "user", "content": "Напиши цену наушников Aurora X" }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "search_knowledge",
+        "description": "Ищет ответ в данных сайта (товары, цены, доставка, возврат, гарантия, контакты, FAQ)…",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Что ищем…" }
+          },
+          "required": ["query"]
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto",
+  "temperature": 0.3,
+  "max_tokens": 300
+}
+```
+
+Заголовки: `Content-Type: application/json`, при заданном `apiKey` — `Authorization: Bearer <key>`. `tool_choice: "auto"` позволяет модели самой решать, нужен ли поиск.
+
+### Цикл агента
+
+```
+1. messages = [system, user(q)]
+2. повторить до 4 раз:
+   a. data = POST /v1/chat/completions { … messages, tools, tool_choice:"auto" }
+   б. если нет choices → вернуть null (модель недоступна)
+   в. если у ответа нет tool_calls → вернуть message.content (финальный ответ)
+   г. иначе: добавить в messages assistant-сообщение с tool_calls
+      для каждого вызова:
+        - search_knowledge → JSON.parse(arguments).query → contextFor(knowledge, query)
+        - неизвестный инструмент → текст «Неизвестный инструмент: …»
+        - добавить сообщение { role:"tool", tool_call_id, content } (обрезка до 2500 символов)
+3. если за лимит раундов финального ответа нет → вернуть null
+```
+
+**Отличие от «по-настоящему фреймворковой» реализации:** готовые библиотеки дают обвязку (планирование, память, сериализация состояний, early-stopping). Здесь эти аспекты решены минималистично: жёсткий лимит раундов (4) вместо планировщика, память диалога — только текущий вопрос, единичный инструмент `search_knowledge`, который переиспользует тот же поиск, что и в режиме `rag` (`contextFor` из `server/lib/ai.js`).
+
+### Обработка ошибок и граничные случаи
+
+- Битая `JSON.parse(arguments)` → пустой запрос → инструмент вернёт «Нет данных сайта.», агент продолжит цикл.
+- Нет знаний сайта / пустой `query` → `search_knowledge` возвращает «Нет данных сайта.».
+- Сеть/500/недоступная модель → `fetch` ловится, возвращается `null` → сервер отвечает локальным поиском по знаниям (fallback), чат не молчит.
+- Зацикливание (модель всё время «ищет») → обрезка после 4 раундов.
+- Ответ сервера помечается источником `tools` в статистике и логах (`chat.hits`).
+
+### Код
+
+- `server/lib/agent.js` — движок агента (`TOOLS`, `agentAnswer`).
+- `server/server.js` — выбор режима (`CFG.agentMode`), переключение по `agentMode` в конфиге/админке, подстановка `tools`-ответа в цепочку `кэш → Q&A → агент → fallback`.
+- `server/lib/ai.js` — переиспользуемый поиск: `contextFor` (контекст для инструмента), `findBest` (fallback).
+
 ## Плюсы
 
 - **Модель сама решает, что искать.** Вопрос «сравни два товара» → модель сделает два поиска, а не один «усреднённый».

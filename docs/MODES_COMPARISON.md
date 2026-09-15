@@ -13,7 +13,17 @@
 | Требования к модели | Любая OpenAI-совместимая | Обязательно function calling (qwen2.5:3b, llama3.1+, gpt-4o…) |
 | Расширяемость инструментами | Нет | Да (заказ, склад, время…) |
 | Код | `server/lib/ai.js` | `server/lib/agent.js` |
+| Фреймворк | Нативный Node.js (`fetch`), без библиотек | Собственный движок цикла (~90 строк) поверх протокола OpenAI **function calling** (`tools`/`tool_calls`), без библиотек |
 | Проверено | 48 тестов `server.test.js` + живая Ollama | тесты + живая Ollama (qwen2.5:3b) |
+
+## Техническая реализация: что общего в коде
+
+Оба режима крутятся в одном процессе `server/server.js` и делят один поиск по знаниям (`contextFor`, `findBest` в `server/lib/ai.js`). Различается только стратегия подачи контекста в модель:
+
+- `rag` → `ai.answer` (в `server/lib/ai.js`): сервер собирает контекст в `system`-промпт, **один** запрос к `/v1/chat/completions`, без `tools`.
+- `tools` → `agent.agentAnswer` (в `server/lib/agent.js`): модель получает вопрос без контекста, инструмент `search_knowledge` (JSON Schema) и сама вызывает его; цикл повторяет запросы с сообщениями `role: "tool"` до финального ответа (лимит 4 раунда).
+
+Ни LangChain/LangGraph, ни Vercel AI SDK, ни LlamaIndex в проект не установлены — «фреймворком» служит родной протокол OpenAI-compatible function calling плюс нативный Node.js `fetch`. Подробные схемы запросов, кода и обработки ошибок — в `docs/MODE_SERVER_RAG.md` и `docs/MODE_AGENT_TOOLS.md`.
 
 ## Что общего (у обоих режимов)
 
