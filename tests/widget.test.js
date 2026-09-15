@@ -14,6 +14,7 @@ const darkHtml = fs.readFileSync(path.join(ROOT, 'demo', 'dark-store.html'), 'ut
 const widgetJs = fs.readFileSync(path.join(ROOT, 'widget', 'adaptive-widget.js'), 'utf8');
 
 let lastAiRequest = null;
+let lastAiHeaders = null;
 
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://' + HOST + ':' + PORT);
@@ -29,6 +30,7 @@ const server = http.createServer((req, res) => {
     req.on('data', (c) => (body += c));
     req.on('end', () => {
       try { lastAiRequest = JSON.parse(body); } catch (e) { lastAiRequest = null; }
+      lastAiHeaders = req.headers;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         choices: [{ message: { role: 'assistant', content: 'Наушники Aurora X стоят 7990 ₽ (по данным сайта).' } }]
@@ -58,6 +60,20 @@ const server = http.createServer((req, res) => {
   if (u.pathname === '/dark') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(darkHtml);
+    return;
+  }
+
+  if (u.pathname === '/openai') {
+    const html = indexHtml.replace("model: 'qwen2.5:3b'", "provider: 'openai',\n  apiKey: 'sk-test-123',\n  model: 'gpt-4o-mini'");
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
+    return;
+  }
+
+  if (u.pathname === '/custom') {
+    const html = indexHtml.replace("model: 'qwen2.5:3b'", "provider: 'custom',\n  endpoint: 'http://localhost:11434/v1/chat/completions',\n  apiKey: 'sk-test-123',\n  model: 'gpt-test'");
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
     return;
   }
 
@@ -196,6 +212,45 @@ async function main() {
   check('bg тёмный', parseInt(darkPalette.bg.replace('#', ''), 16) < 0x808080, darkPalette.bg);
   const darkKnow = await page.evaluate(() => window.__ADAPTIVE_DEBUG__.knowledge.join(' | '));
   check('знания: ключ приходит мгновенно', darkKnow.indexOf('Как быстро приходит ключ') !== -1, darkKnow.slice(0, 100));
+
+  // ---------- Тест 6: облачный провайдер OpenAI по API-ключу ----------
+  console.log('\n== Тест 6: облачный провайдер OpenAI по API-ключу ==');
+  await page.goto(base() + '/openai', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.shadowRoot && host.shadowRoot.querySelector('.s').textContent.indexOf('OpenAI') !== -1;
+  }, { timeout: 10000 });
+  const openaiStatus = await page.evaluate(() => document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.s').textContent);
+  check('статус: AI: gpt-4o-mini · OpenAI', openaiStatus.indexOf('gpt-4o-mini') !== -1 && openaiStatus.indexOf('OpenAI') !== -1, openaiStatus);
+  const backend = await page.evaluate(() => window.__ADAPTIVE_DEBUG__.backend);
+  check('авто-резолв провайдера → openai', backend.provider === 'openai', backend.provider);
+  check('эндпоинт = api.openai.com/v1', backend.endpoint === 'https://api.openai.com/v1/chat/completions', backend.endpoint);
+  check('модель по умолчанию gpt-4o-mini', backend.model === 'gpt-4o-mini', backend.model);
+
+  // ---------- Тест 7: свой API-эндпоинт (OpenAI-совместимый) + apiKey ----------
+  console.log('\n== Тест 7: свой API-эндпоинт + apiKey ==');
+  await page.goto(base() + '/custom', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => window.__ADAPTIVE_DEBUG__, { timeout: 10000 });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.shadowRoot && !!host.shadowRoot.querySelector('.fab');
+  });
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    s.querySelector('.fab').click();
+    const input = s.querySelector('.input input');
+    input.value = 'Сколько стоят наушники Aurora X?';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.b .m');
+    const last = msgs[msgs.length - 1];
+    return last && last.textContent.indexOf('по данным сайта') !== -1;
+  }, { timeout: 12000 });
+  await new Promise((r) => setTimeout(r, 200));
+  check('модель в запросе gpt-test', !!lastAiRequest && lastAiRequest.model === 'gpt-test', lastAiRequest && lastAiRequest.model);
+  check('отправлен Bearer-ключ', !!(lastAiHeaders && lastAiHeaders.authorization === 'Bearer sk-test-123'), lastAiHeaders && lastAiHeaders.authorization);
+  check('RAG-контекст в системном промпте', !!lastAiRequest && lastAiRequest.messages[0].content.indexOf('Наушники Aurora X') !== -1);
 
   check('нет ошибок в консоли', pageErrors.length === 0, pageErrors.join('; '));
 

@@ -7,7 +7,8 @@
     position: 'right',
     apiKey: '',
     endpoint: 'http://localhost:11434/v1/chat/completions',
-    model: 'qwen2.5:3b',
+    model: '',
+    provider: 'auto',
     aiEnabled: true,
     autoOpen: true,
     teaser: ''
@@ -24,6 +25,37 @@
   if (!CONFIG.siteName) {
     CONFIG.siteName = (document.title || '').split(/[|—–]/)[0].trim() || 'Сайт';
   }
+
+  var DEFAULT_ENDPOINT = DEFAULTS.endpoint;
+  var PROVIDERS = {
+    ollama:     { label: 'Ollama',        base: 'http://localhost:11434/v1', model: 'qwen2.5:3b' },
+    openai:     { label: 'OpenAI',        base: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+    openrouter: { label: 'OpenRouter',    base: 'https://openrouter.ai/api/v1', model: 'openrouter/auto' },
+    groq:       { label: 'Groq',          base: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
+    mistral:    { label: 'Mistral',       base: 'https://api.mistral.ai/v1', model: 'mistral-small-latest' },
+    custom:     { label: 'Свой API',      base: '' }
+  };
+  var BACKEND = { provider: 'custom', label: 'Свой API', endpoint: CONFIG.endpoint, model: CONFIG.model || 'gpt-4o-mini' };
+
+  function resolveBackend() {
+    var prov = CONFIG.provider;
+    if (!PROVIDERS[prov]) prov = 'auto';
+    if (prov === 'auto') {
+      if (CONFIG.endpoint && CONFIG.endpoint !== DEFAULT_ENDPOINT) prov = 'custom';
+      else prov = CONFIG.apiKey ? 'openai' : 'ollama';
+    }
+    var p = PROVIDERS[prov];
+    BACKEND.provider = prov;
+    BACKEND.label = p.label;
+    if (prov === 'custom') {
+      BACKEND.endpoint = CONFIG.endpoint;
+      BACKEND.model = CONFIG.model || 'custom-model';
+    } else {
+      BACKEND.endpoint = p.base + '/chat/completions';
+      BACKEND.model = CONFIG.model || p.model;
+    }
+  }
+  resolveBackend();
 
   var LANG = (document.documentElement.lang || 'ru').slice(0, 2).toLowerCase();
   if (CONFIG.lang && CONFIG.lang.length === 2) LANG = CONFIG.lang;
@@ -331,11 +363,11 @@
     var sysMsg = 'Ты — ИИ-агент сайта «' + CONFIG.siteName + '». Отвечай кратко, дружелюбно, только на основе данных сайта. Если ответа нет — честно скажи, что не знаешь, и предложи связаться с поддержкой.\n\nДанные сайта:\n' + context(q);
     var headers = { 'Content-Type': 'application/json' };
     if (CONFIG.apiKey) headers['Authorization'] = 'Bearer ' + CONFIG.apiKey;
-    return fetch(CONFIG.endpoint, {
+    return fetch(BACKEND.endpoint, {
       method: 'POST',
       headers: headers,
       body: JSON.stringify({
-        model: CONFIG.model,
+        model: BACKEND.model,
         messages: [{ role: 'system', content: sysMsg }, { role: 'user', content: q }],
         temperature: 0.3
       })
@@ -502,24 +534,34 @@
       if (chip) ask(chip.textContent);
     });
     addMsg('Привет! ' + CONFIG.siteName + '. Спросите меня о товарах, доставке или возврате — я отвечаю данными этого сайта.', 'bot');
-    if (CONFIG.aiEnabled) checkOllama();
+    if (CONFIG.aiEnabled) checkAI();
   }
 
-  function checkOllama() {
+  function checkAI() {
     var statusEl = shadow.querySelector('.s');
     if (!statusEl) return;
+    if (BACKEND.provider !== 'ollama') {
+      if (!CONFIG.apiKey) {
+        statusEl.textContent = 'AI: ' + BACKEND.label + ' — нужен apiKey';
+        statusEl.style.color = '#fbbf24';
+      } else {
+        statusEl.textContent = 'AI: ' + BACKEND.model + ' · ' + BACKEND.label;
+        statusEl.style.color = '#4ade80';
+      }
+      return;
+    }
     statusEl.textContent = 'проверяю AI...';
-    fetch(CONFIG.endpoint.replace('/chat/completions', '/../api/tags'), { method: 'GET' }).then(function (r) {
+    fetch(BACKEND.endpoint.replace('/chat/completions', '/../api/tags'), { method: 'GET' }).then(function (r) {
       if (!r.ok) throw new Error();
       return r.json();
     }).then(function (data) {
       var models = (data.models || []).map(function (m) { return m.name; });
-      var found = models.some(function (n) { return n.indexOf(CONFIG.model.split(':')[0]) === 0; });
+      var found = models.some(function (n) { return n.indexOf(BACKEND.model.split(':')[0]) === 0; });
       if (found) {
-        statusEl.textContent = 'AI: ' + CONFIG.model;
+        statusEl.textContent = 'AI: ' + BACKEND.model + ' · Ollama';
         statusEl.style.color = '#4ade80';
       } else {
-        statusEl.textContent = 'AI: нужна модель ' + CONFIG.model;
+        statusEl.textContent = 'AI: нужна модель ' + BACKEND.model;
         statusEl.style.color = '#fbbf24';
       }
     }).catch(function () {
@@ -555,7 +597,8 @@
       window.__ADAPTIVE_DEBUG__ = {
         palette: { primary: PALETTE.primary, accent: PALETTE.accent, bg: PALETTE.bg, fg: PALETTE.fg, dark: PALETTE.dark, radius: PALETTE.radius, font: PALETTE.font, logo: PALETTE.logo },
         knowledge: KNOW.slice(0, 40).map(function (i) { return i.title + ' :: ' + i.content.slice(0, 120); }),
-        knowCount: KNOW.length
+        knowCount: KNOW.length,
+        backend: { provider: BACKEND.provider, label: BACKEND.label, endpoint: BACKEND.endpoint, model: BACKEND.model }
       };
     } catch (e) {}
   }
