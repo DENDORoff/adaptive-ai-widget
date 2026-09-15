@@ -21,6 +21,7 @@ let lastHandoff = null;
 let lastInstr = null;
 const chatMode = {};
 const sseClients = Object.create(null);
+let ollamaDown = false;
 
 function pushEvent(chatId, event, data) {
   const payload = 'event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n';
@@ -56,8 +57,16 @@ const server = http.createServer((req, res) => {
   }
 
   if (u.pathname === '/api/tags') {
+    if (ollamaDown) { res.writeHead(500); res.end('olm down'); return; }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ models: [{ name: 'qwen2.5:3b' }] }));
+    return;
+  }
+
+  if (u.pathname === '/disableollama') {
+    ollamaDown = true;
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('ollama disabled');
     return;
   }
 
@@ -95,6 +104,13 @@ const server = http.createServer((req, res) => {
 
   if (u.pathname === '/backend') {
     const html = indexHtml.replace("model: 'qwen2.5:3b'", "backend: 'http://localhost:11434',\n  askEmail: true,\n  siteName: 'GadgetHub'");
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
+    return;
+  }
+
+  if (u.pathname === '/adminlocked') {
+    const html = indexHtml.replace("model: 'qwen2.5:3b'", "adminPass: 's3cret'");
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
     return;
@@ -418,6 +434,55 @@ async function main() {
   });
   await new Promise((r) => setTimeout(r, 400));
   check('инструкции сохранены в localStorage', await page.evaluate(() => localStorage.getItem('pw_instr')) === 'Всегда предлагайте скидку 10% новым клиентам');
+
+  // ---------- Тест 10: настройки только для админа (adminPass) ----------
+  console.log('\n== Тест 10: админ-гейт настроек ==');
+  await page.goto(base() + '/adminlocked', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.shadowRoot && !!host.shadowRoot.querySelector('[data-gear]');
+  });
+  await page.evaluate(() => {
+    window.prompt = () => 'wrongpass';
+    document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-gear]').click();
+  });
+  await new Promise((r) => setTimeout(r, 400));
+  const cfgAfterFail = await page.evaluate(() => document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-cfg]').classList.contains('open'));
+  const badMsg = await page.evaluate(() => {
+    const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.b .m');
+    return msgs[msgs.length - 1].textContent;
+  });
+  check('неверный пароль не открывает настройки', !cfgAfterFail);
+  check('появляется сообщение об ошибке', badMsg === 'Неверный пароль.', badMsg);
+
+  await page.evaluate(() => {
+    window.prompt = () => 's3cret';
+    document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-gear]').click();
+  });
+  await new Promise((r) => setTimeout(r, 400));
+  const cfgAfterOk = await page.evaluate(() => document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-cfg]').classList.contains('open'));
+  check('верный пароль открывает настройки', cfgAfterOk);
+
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-x]').click(); });
+  await new Promise((r) => setTimeout(r, 200));
+  const cfgClosed = await page.evaluate(() => document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-cfg]').classList.contains('open'));
+  check('кнопка ✕ закрывает настройки', !cfgClosed);
+  check('права админа запомнены', await page.evaluate(() => localStorage.getItem('pw_admin|localhost')) === '1');
+
+  // ---------- Тест 11: нейтральный статус, когда Ollama недоступна ----------
+  console.log('\n== Тест 11: статус при недоступной Ollama ==');
+  await page.goto(base() + '/disableollama', { waitUntil: 'domcontentloaded' });
+  await page.goto(base() + '/', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.shadowRoot && host.shadowRoot.querySelector('.s').textContent.indexOf('ИИ отключён') !== -1;
+  }, { timeout: 10000 });
+  const offStatus = await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.s');
+    return { text: s.textContent, color: s.style.color };
+  });
+  check('нет красной ошибки "Ollama не запущен"', offStatus.text.indexOf('Ollama не запущен') === -1 && offStatus.text.indexOf('ИИ отключён') !== -1, offStatus.text);
+  check('статус жёлтый (не ошибка)', offStatus.color === 'rgb(251, 191, 36)', offStatus.color);
 
   check('итог: нет ошибок в консоли на всей сессии', pageErrors.length === 0, pageErrors.join('; '));
 

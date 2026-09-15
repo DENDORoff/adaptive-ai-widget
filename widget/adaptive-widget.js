@@ -14,6 +14,7 @@
     askEmail: false,
     supportEmail: 'support@deworld.su',
     showConfig: true,
+    adminPass: '',
     instructions: '',
     autoOpen: true,
     teaser: ''
@@ -67,6 +68,14 @@
     set: function (k, v) { try { if (window.localStorage) localStorage.setItem(k, v); } catch (e) {} }
   };
   var CHAT = { id: '', email: '', human: false, seen: {}, es: null };
+
+  function isAdmin() {
+    return LS.get('pw_admin|' + (location.hostname || '')) === '1';
+  }
+
+  function grantAdmin() {
+    LS.set('pw_admin|' + (location.hostname || ''), '1');
+  }
   (function initChat() {
     if (!CONFIG.backend) return;
     if (CUSTOM.askEmail === undefined) CONFIG.askEmail = true;
@@ -99,6 +108,8 @@
     emailDone: 'Thanks! Now answers can also be sent to your email.',
     emailBad: 'That does not look like an email. Please enter it again:',
     settings: 'AI settings',
+    adminAsk: 'Enter admin password to change widget settings:',
+    adminBad: 'Wrong password.',
     instrTitle: 'Instructions (applied to AI answers)',
     instrSave: 'Save instructions',
     instrSaved: 'Instructions saved',
@@ -124,6 +135,8 @@
     emailDone: 'Спасибо! Теперь ответы могут приходить и на вашу почту.',
     emailBad: 'Похоже, это не email. Введите почту ещё раз:',
     settings: 'Настройки ИИ',
+    adminAsk: 'Введите пароль администратора для изменения настроек виджета:',
+    adminBad: 'Неверный пароль.',
     instrTitle: 'Инструкции (применяются к ответам ИИ)',
     instrSave: 'Сохранить инструкции',
     instrSaved: 'Инструкции сохранены',
@@ -485,6 +498,8 @@
       '.op-btn.on{opacity:1;padding:3px;border-radius:8px;background:rgba(255,255,255,.18);}',
       '.cfg{position:absolute;top:0;left:0;right:0;bottom:0;background:' + panelBg + ';z-index:5;padding:16px;overflow-y:auto;display:none;}',
       '.cfg.open{display:block;}',
+      '.cfg-close{position:absolute;top:10px;right:12px;background:none;border:none;color:' + sub + ';cursor:pointer;font-size:15px;line-height:1;padding:4px;}',
+      '.cfg-close:hover{color:' + PALETTE.primary + ';}',
       '.cfg h4{margin:0 0 10px;font-size:14px;}',
       '.cfg label{display:block;font-size:11.5px;color:' + sub + ';margin:12px 0 4px;}',
       '.cfg textarea{width:100%;min-height:64px;border:1px solid ' + (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)') + ';background:transparent;color:' + panelText + ';border-radius:10px;padding:8px 10px;font-size:12.5px;resize:vertical;outline:none;font-family:inherit;}',
@@ -532,6 +547,7 @@
       '<button class="close" aria-label="' + T.close + '">' + SVG_CLOSE + '</button>' +
       '</div>' +
       '<div class="cfg" data-cfg>' +
+      '<button class="cfg-close" data-x title="' + T.close + '">✕</button>' +
       '<h4>' + T.settings + '</h4>' +
       '<label>' + T.instrTitle + '</label>' +
       '<textarea data-instr placeholder="..."></textarea>' +
@@ -769,7 +785,18 @@
     var opBtn = shadow.querySelector('[data-op]');
     if (opBtn) opBtn.addEventListener('click', doHandoff);
     var gear = shadow.querySelector('[data-gear]');
-    if (gear) gear.addEventListener('click', function () { toggleSettings(); });
+    if (gear) gear.addEventListener('click', function () {
+      if (CONFIG.adminPass && !isAdmin()) {
+        var v = window.prompt(T.adminAsk);
+        if (!v) return;
+        if (v === CONFIG.adminPass) { grantAdmin(); toggleSettings(); return; }
+        addMsg(T.adminBad, 'bot');
+        return;
+      }
+      toggleSettings();
+    });
+    var cfgX = shadow.querySelector('[data-x]');
+    if (cfgX) cfgX.addEventListener('click', function () { toggleSettings(false); });
     var cfgBtn = shadow.querySelector('[data-cfg]');
     if (cfgBtn) {
       var saveBtn = shadow.querySelector('[data-save]');
@@ -840,8 +867,8 @@
         statusEl.style.color = '#fbbf24';
       }
     }).catch(function () {
-      statusEl.textContent = 'AI: Ollama не запущен';
-      statusEl.style.color = '#f87171';
+      statusEl.textContent = 'ИИ отключён · отвечаю по данным сайта';
+      statusEl.style.color = '#fbbf24';
     });
   }
 
