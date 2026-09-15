@@ -22,12 +22,11 @@
 
 ```bash
 # Windows: скачайте с https://ollama.com/download/windows, затем:
-setup-ollama.bat      # проверка/установка модели qwen2.5:3b
-ollama-start.bat      # запуск сервера Ollama (CPU-режим) + демо
+ollama-start.bat      # установка модели + запуск Ollama (CPU-режим) -> демо
 ```
 
 - Демо: откройте `demo/index.html` (виджет ходит напрямую в `http://localhost:11434`).
-- `ollama-start.bat` запускает Ollama в **CPU-режиме** (`CUDA_VISIBLE_DEVICES=-1`) и с `OLLAMA_ORIGINS=*` — так демо открывается даже из `file://`, а на старых GPU (GTX 10xx и т.п.) нет падения llama-server из-за несовместимого PTX.
+- `ollama-start.bat` делает всё сам: при необходимости качает модель `qwen2.5:3b`, запускает сервер в **CPU-режиме** (`CUDA_VISIBLE_DEVICES=-1`) и с `OLLAMA_ORIGINS=*` — так демо открывается даже из `file://`, а на старых GPU (GTX 10xx и т.п.) нет падения llama-server из-за несовместимого PTX.
 - Перед запуском закройте трей Ollama (`ollama app`), иначе порт `11434` будет занят её сервером.
 
 ### 3. (опционально) Сервер поддержки
@@ -239,7 +238,7 @@ window.__ADAPTIVE_DEBUG__.backend    // какой LLM-провайдер и м�
 │   ├── PITCH.md              # структура питча (5 минут)
 │   └── BUSINESS_PLAN.md      # бизнес-план и монетизация
 ├── package.json              # dev-зависимости только для тестов
-├── setup-ollama.bat          # скрипт установки Ollama
+├── ollama-start.bat          # один скрипт: модель + запуск Ollama (CPU) + демо
 └── README.md
 ```
 
