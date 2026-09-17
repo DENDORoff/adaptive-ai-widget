@@ -504,6 +504,32 @@ async function main() {
   check('нет красной ошибки "Ollama не запущен"', offStatus.text.indexOf('Ollama не запущен') === -1 && offStatus.text.indexOf('ИИ отключён') !== -1, offStatus.text);
   check('статус жёлтый (не ошибка)', offStatus.color === 'rgb(251, 191, 36)', offStatus.color);
 
+  // ---------- Тест 12: динамическая смена темы и палитры без перезагрузки ----------
+  console.log('\n== Тест 12: динамическая смена темы и палитры ==');
+  const apiType = await page.evaluate(() => typeof window.AdaptiveWidget.refresh);
+  check('публичный API AdaptiveWidget.refresh доступен', apiType === 'function', apiType);
+
+  await page.evaluate(() => {
+    document.documentElement.style.setProperty('--brand', '#ea580c');
+    document.documentElement.style.setProperty('--accent', '#f59e0b');
+    window.AdaptiveWidget.refresh();
+  });
+  await new Promise((r) => setTimeout(r, 300));
+  const dyn = await page.evaluate(() => {
+    const p = window.__ADAPTIVE_DEBUG__.palette;
+    return { primary: p.primary, accent: p.accent, hosts: document.querySelectorAll('[data-adaptive-widget]').length };
+  });
+  check('палитра обновилась без перезагрузки', String(dyn.primary).toLowerCase() === '#ea580c' && String(dyn.accent).toLowerCase() === '#f59e0b', dyn.primary + '/' + dyn.accent);
+  check('виджет не дублируется при refresh', dyn.hosts === 1, 'hosts=' + dyn.hosts);
+
+  await page.evaluate(() => {
+    document.body.style.background = '#0b1220';
+    window.AdaptiveWidget.refresh();
+  });
+  await new Promise((r) => setTimeout(r, 300));
+  const darkDyn = await page.evaluate(() => window.__ADAPTIVE_DEBUG__.palette.dark);
+  check('тёмная тема подхватывается динамически', darkDyn === true, 'dark=' + darkDyn);
+
   check('итог: нет ошибок в консоли на всей сессии', pageErrors.length === 0, pageErrors.join('; '));
 
   await browser.close();

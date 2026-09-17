@@ -58,6 +58,14 @@
   .msg.agent .bub { background: #4a1d53; border: 1px solid rgba(168,85,247,.4); }
   .msg.system { justify-content: center; } .msg.system .bub { background: transparent; color: var(--sub); font-size: 12px; }
   .msg .meta { display: block; font-size: 10.5px; color: var(--sub); margin-bottom: 2px; }
+  .msg.new { animation: msgIn .35s ease both; }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .connwrap { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sub); transition: .2s; }
+  .dot.ok { background: var(--green); box-shadow: 0 0 0 3px rgba(74,222,128,.18); animation: connPulse 1.8s ease-in-out infinite; }
+  .dot.err { background: var(--red); }
+  @keyframes connPulse { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+  .live-tag { font-size: 10.5px; color: var(--green); opacity: .85; }
   .reply { display: flex; gap: 8px; margin: 12px 0; } .reply input { flex: 1; }
   input, textarea, select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 13px; font-family: inherit; outline: none; }
   input:focus, textarea:focus, select:focus { border-color: var(--brand); }
@@ -114,7 +122,10 @@
     <button id="tab_data" onclick="showTab('data')">Данные и инструкции</button>
     <button id="tab_settings" onclick="showTab('settings')">Настройки</button>
   </nav>
-  <span class="badge" id="conn" style="margin-left:auto">подключение...</span>
+  <span class="connwrap">
+    <span class="dot" id="conn_dot"></span>
+    <span class="badge" id="conn">подключение...</span>
+  </span>
 </header>
 
 <div id="apibanner" class="banner err"></div>
@@ -314,6 +325,8 @@
   let current = null;
   let filter = 'all';
   let kbItems = [];
+  let lastMsgCount = 0;
+  let lastDetailSig = '';
 
   const SMTP_PRESETS = {
     yandex: { host: 'smtp.yandex.ru', port: 465, secure: true },
@@ -373,7 +386,8 @@
   function markOnline() {
     $('#conn').classList.remove('err');
     $('#conn').classList.add('ok');
-    $('#conn').textContent = 'онлайн · ' + chats.length + ' чатов';
+    $('#conn').textContent = 'онлайн · ' + chats.length + ' чатов · ' + new Date().toLocaleTimeString('ru-RU');
+    $('#conn_dot').className = 'dot ok';
     $('#apibanner').style.display = 'none';
   }
 
@@ -382,6 +396,7 @@
     $('#conn').classList.remove('ok');
     $('#conn').classList.add('err');
     $('#conn').textContent = isFile ? 'открыт как файл — нужен http' : 'сервер недоступен';
+    $('#conn_dot').className = 'dot err';
     const el = $('#apibanner');
     el.textContent = isFile
       ? 'Админка открыта как файл (file://). Запустите `node server/server.js` и откройте http://localhost:3000/admin'
@@ -424,20 +439,36 @@
     if ($('#view-chats').classList.contains('on') === false) showTab('chats');
     if (id === currentId) return loadDetail();
     currentId = id;
+    lastMsgCount = 0;
+    lastDetailSig = '';
     renderList();
     $('#empty').style.display = 'none';
     $('#chatview').style.display = 'block';
     await loadDetail();
   };
 
-  async function loadDetail() {
-    try {
-      current = await api('/api/chat/' + currentId + '/full');
-      renderDetail();
-    } catch (e) { toast('Не удалось загрузить чат'); offline(e && e.message); }
+  function detailSig(c) {
+    const msgs = c.messages || [];
+    const last = msgs[msgs.length - 1] || {};
+    return msgs.length + '|' + (last.ts || '') + '|' + c.status + '|' + (c.rating || '');
   }
 
-  function renderDetail() {
+  async function loadDetail(soft) {
+    if (!currentId) return;
+    try {
+      const c = await api('/api/chat/' + currentId + '/full');
+      if (soft && detailSig(c) === lastDetailSig) { current = c; return; }
+      const box = $('#d_msgs');
+      const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 70;
+      current = c;
+      lastDetailSig = detailSig(c);
+      renderDetail(!!soft, wasAtBottom);
+    } catch (e) {
+      if (!soft) { toast('Не удалось загрузить чат'); offline(e && e.message); }
+    }
+  }
+
+  function renderDetail(soft, wasAtBottom) {
     const c = current;
     $('#d_site').textContent = c.siteName || 'Чат ' + c.id;
     const st = $('#d_status');
@@ -445,15 +476,20 @@
     st.className = 'st ' + c.status;
     $('#d_email').textContent = '✉ ' + (c.email || '—') + ' · ' + new Date(c.createdAt).toLocaleString('ru-RU');
     const names = { user: 'Клиент', bot: 'ИИ-агент', agent: 'Оператор', system: 'Система' };
-    $('#d_msgs').innerHTML = (c.messages || []).map((m) =>
-      '<div class="msg ' + esc(m.role) + '">' +
+    const msgs = c.messages || [];
+    const prev = soft ? lastMsgCount : 0;
+    $('#d_msgs').innerHTML = msgs.map((m, i) =>
+      '<div class="msg ' + esc(m.role) + (i >= prev ? ' new' : '') + '">' +
         '<div class="bub"><span class="meta">' + esc(names[m.role] || m.role) + ' · ' + esc(new Date(m.ts).toLocaleTimeString('ru-RU')) + '</span>' + esc(m.text) + '</div>' +
       '</div>'
     ).join('') || '<div class="hint" style="text-align:center">Сообщений пока нет</div>';
-    $('#d_msgs').scrollTop = $('#d_msgs').scrollHeight;
-    $('#d_instr').value = c.instructions || '';
-    $('#d_prompt').value = c.promptSnap || '—';
-    $('#d_know').value = (c.knowledge || []).slice(0, 12).map((k) => k.title + ' :: ' + String(k.content || '').slice(0, 120)).join('\n') || '—';
+    if (!soft || wasAtBottom) $('#d_msgs').scrollTop = $('#d_msgs').scrollHeight;
+    lastMsgCount = msgs.length;
+    if (!soft) {
+      $('#d_instr').value = c.instructions || '';
+      $('#d_prompt').value = c.promptSnap || '—';
+      $('#d_know').value = (c.knowledge || []).slice(0, 12).map((k) => k.title + ' :: ' + String(k.content || '').slice(0, 120)).join('\n') || '—';
+    }
   }
 
   $('#btn_reply').addEventListener('click', sendReply);
@@ -667,7 +703,11 @@
 
   refreshList();
   setInterval(refreshList, 3000);
+  setInterval(() => {
+    if (currentId && $('#view-chats').classList.contains('on') && !document.hidden) loadDetail(true);
+  }, 3000);
   setInterval(() => { if ($('#view-stats').classList.contains('on')) loadStats(); }, 5000);
+  setInterval(() => { if ($('#view-data').classList.contains('on') && !document.hidden) loadData(); }, 7000);
 })();
 </script>
 </body>

@@ -187,10 +187,13 @@
     PALETTE.dark = luminance(PALETTE.bg) < 0.45;
     PALETTE.fg = PALETTE.dark ? '#f3f4f6' : '#111827';
     PALETTE.font = (getComputedStyle(document.body).fontFamily || 'system-ui').split('"').join('').split(',')[0];
-    var btn = document.querySelector('button, .btn, a[class*="btn"]');
-    if (btn) {
-      var r = parseInt(getComputedStyle(btn).borderRadius, 10);
-      if (!isNaN(r) && r > 0) PALETTE.radius = Math.min(26, r);
+    var btnList = document.querySelectorAll('button, .btn, a[class*="btn"]');
+    for (var bi = 0; bi < btnList.length; bi++) {
+      var b = btnList[bi];
+      var bw = b.offsetWidth || 0;
+      if (bw && bw < 48) continue;
+      var r = parseInt(getComputedStyle(b).borderRadius, 10);
+      if (!isNaN(r) && r > 0) { PALETTE.radius = Math.min(26, r); break; }
     }
     var img = document.querySelector('header img, .logo img, nav img');
     if (img && img.src && img.src.indexOf('data:') !== 0) PALETTE.logo = img.src;
@@ -516,7 +519,7 @@
       if (isFinite(o.radius) && o.radius > 0 && o.radius <= 30) PALETTE.radius = Math.round(o.radius);
       PALETTE._ai = true;
       return o;
-    }).catch(function () { return null; }).then(function () { buildUI(); });
+    }).catch(function () { return null; }).then(function () { if (host) applyPalette(); else buildUI(); });
   }
 
   function answerText(q) {
@@ -548,7 +551,7 @@
       ':host{all:initial;}',
       '*{box-sizing:border-box;font-family:var(--pw-font),system-ui,sans-serif;}',
       '.fab{position:fixed;' + (CONFIG.position === 'left' ? 'left:20px' : 'right:20px') + ';bottom:20px;width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;z-index:2147483000;',
-      'background:linear-gradient(135deg,' + PALETTE.primary + ',' + PALETTE.accent + ');box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .2s ease;padding:0;}',
+      'background:linear-gradient(135deg,' + PALETTE.primary + ',' + PALETTE.accent + ');box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .2s ease,box-shadow .35s ease;padding:0;}',
       '.fab:hover{transform:scale(1.06);}',
       '.fab .halo{position:absolute;inset:-4px;border-radius:50%;border:2px solid ' + PALETTE.accent + ';opacity:0;pointer-events:none;}',
       '.fab.new .halo{animation:haloPulse 2.2s ease-out infinite;}',
@@ -557,8 +560,12 @@
       '.panel{position:fixed;' + (CONFIG.position === 'left' ? 'left:20px' : 'right:20px') + ';bottom:88px;width:380px;max-width:calc(100vw - 32px);height:560px;max-height:min(560px,calc(100vh - 120px));',
       'background:' + panelBg + ';color:' + panelText + ';border-radius:' + (PALETTE.radius + 6) + 'px;overflow:hidden;display:flex;flex-direction:column;z-index:2147483001;',
       'box-shadow:0 20px 60px rgba(0,0,0,.3);border:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';',
-      'transform:translateY(16px) scale(.98);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .25s ease;font-size:14px;line-height:1.5;}',
+      'transform:translateY(16px) scale(.98);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .25s ease,background .35s ease,border-color .35s ease;font-size:14px;line-height:1.5;}',
       '.panel.open{transform:none;opacity:1;pointer-events:auto;}',
+      ':host([data-theme-anim]) .fab{animation:themeSwap .55s ease;}',
+      ':host([data-theme-anim]) .panel{animation:themePop .55s ease;}',
+      '@keyframes themeSwap{0%{filter:saturate(1.6) brightness(1.08)}100%{filter:none}}',
+      '@keyframes themePop{0%{opacity:.55;filter:saturate(1.4) brightness(1.05)}100%{opacity:1;filter:none}}',
       '.head{display:flex;align-items:center;gap:10px;padding:14px 16px;color:#fff;',
       'background:linear-gradient(120deg,' + PALETTE.primary + ',' + accentDark + ');}',
       '.head .ava{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex:0 0 36px;}',
@@ -988,6 +995,39 @@
     if (st) st.textContent = cssText();
   }
 
+  function updateDebug() {
+    try {
+      window.__ADAPTIVE_DEBUG__ = {
+        palette: { primary: PALETTE.primary, accent: PALETTE.accent, bg: PALETTE.bg, fg: PALETTE.fg, dark: PALETTE.dark, radius: PALETTE.radius, font: PALETTE.font, logo: PALETTE.logo, found: PALETTE.found, ai: !!PALETTE._ai },
+        knowledge: KNOW.slice(0, 40).map(function (i) { return i.title + ' :: ' + i.content.slice(0, 120); }),
+        knowCount: KNOW.length,
+        imagesCount: IMAGE_LIST.length,
+        backend: { provider: BACKEND.provider, label: BACKEND.label, endpoint: BACKEND.endpoint, model: BACKEND.model }
+      };
+    } catch (e) {}
+  }
+
+  function applyPalette() {
+    if (!host || !shadow) return;
+    host.style.setProperty('--pw-font', JSON.stringify(PALETTE.font));
+    paint();
+    host.setAttribute('data-theme-anim', '');
+    clearTimeout(host._animT);
+    host._animT = setTimeout(function () { host.removeAttribute('data-theme-anim'); }, 600);
+    updateDebug();
+  }
+
+  // Перечитать стиль и знания страницы и плавно перекрасить виджет без перезагрузки.
+  function refreshTheme() {
+    extractStyle();
+    KNOW = [];
+    IMAGE_LIST = [];
+    IDX = {};
+    buildKnowledge();
+    indexKnowledge();
+    applyPalette();
+  }
+
   function buildUI() {
     host = document.createElement('div');
     host.setAttribute('data-adaptive-widget', '');
@@ -1003,16 +1043,18 @@
         if (!panelEl.classList.contains('open')) teaserEl.style.display = 'block';
       }, 1600);
     }
-    try {
-      window.__ADAPTIVE_DEBUG__ = {
-        palette: { primary: PALETTE.primary, accent: PALETTE.accent, bg: PALETTE.bg, fg: PALETTE.fg, dark: PALETTE.dark, radius: PALETTE.radius, font: PALETTE.font, logo: PALETTE.logo, found: PALETTE.found, ai: !!PALETTE._ai },
-        knowledge: KNOW.slice(0, 40).map(function (i) { return i.title + ' :: ' + i.content.slice(0, 120); }),
-        knowCount: KNOW.length,
-        imagesCount: IMAGE_LIST.length,
-        backend: { provider: BACKEND.provider, label: BACKEND.label, endpoint: BACKEND.endpoint, model: BACKEND.model }
-      };
-    } catch (e) {}
+    updateDebug();
   }
+
+  window.AdaptiveWidget = {
+    refresh: refreshTheme,
+    palette: function () {
+      return { primary: PALETTE.primary, accent: PALETTE.accent, bg: PALETTE.bg, dark: PALETTE.dark, radius: PALETTE.radius, font: PALETTE.font };
+    },
+    open: function () { if (panelEl && !panelEl.classList.contains('open')) toggle(); },
+    close: function () { if (panelEl && panelEl.classList.contains('open')) toggle(); },
+    toggle: toggle
+  };
 
   function boot() {
     extractStyle();

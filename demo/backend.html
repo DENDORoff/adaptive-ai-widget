@@ -50,6 +50,40 @@
   .foot { max-width: 1080px; margin: 0 auto; padding: 20px 24px; display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
   .foot .copy { color: var(--soft); font-size: 13px; }
   .foot a { color: var(--brand); text-decoration: none; margin-left: 14px; font-size: 13px; }
+
+  /* --- Тёмная тема --- */
+  html[data-theme="dark"] { --ink: #e5e7eb; --soft: #94a3b8; --line: #243247; }
+  html[data-theme="dark"] body { background: #0b1220; }
+  html[data-theme="dark"] header { background: #0f172a; }
+  html[data-theme="dark"] .btn-line,
+  html[data-theme="dark"] .product,
+  html[data-theme="dark"] .faq-item { background: #121a2b; border-color: #243247; }
+  html[data-theme="dark"] .hero { background: linear-gradient(120deg, rgba(2,132,199,.16), rgba(124,58,237,.18)); }
+  html[data-theme="dark"] .note { background: #0c2a33; border-color: #155e75; color: #a5f3fc; }
+  html[data-theme="dark"] .note b { color: #67e8f9; }
+  html[data-theme="dark"] footer { background: #0e1626; }
+  html[data-theme="dark"] img { filter: brightness(.93); }
+
+  /* --- Переключатели темы и палитры --- */
+  .controls { display: flex; align-items: center; gap: 10px; }
+  .swatches { display: flex; gap: 6px; }
+  .sw { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; padding: 0; cursor: pointer; background: linear-gradient(135deg, var(--c1), var(--c2)); transition: transform .15s, box-shadow .15s; }
+  .sw:hover { transform: scale(1.18); }
+  .sw.on { border-color: var(--ink); box-shadow: 0 0 0 2px rgba(125,125,125,.35); }
+  .themebtn { background: var(--ink); color: #fff; border: none; width: 34px; height: 34px; border-radius: 10px; cursor: pointer; font-size: 16px; line-height: 1; }
+  html[data-theme="dark"] .themebtn { background: #1f2937; }
+
+  /* --- Соцсети --- */
+  .socials { display: flex; gap: 8px; flex-wrap: wrap; }
+  .socials a { display: inline-flex; align-items: center; font-size: 12.5px; padding: 5px 11px; border-radius: 100px; border: 1px solid var(--line); color: var(--soft); text-decoration: none; margin: 0; transition: .15s; }
+  .socials a:hover { color: var(--brand); border-color: var(--brand); transform: translateY(-1px); }
+  .sponsor { font-size: 12.5px; color: var(--soft); margin-top: 4px; }
+  .sponsor a { color: var(--brand); font-weight: 600; text-decoration: none; }
+
+  /* --- Анимации --- */
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
 </style>
 <script type="application/ld+json">
 {
@@ -101,6 +135,17 @@
       <a href="#faq">Вопросы</a>
       <a href="#contacts">Контакты</a>
     </nav>
+    <div class="controls">
+      <div class="swatches" id="swatches" title="Цветовая палитра">
+        <button class="sw on" data-c="#0284c7" data-a="#7c3aed" style="--c1:#0284c7;--c2:#7c3aed" title="Небо"></button>
+        <button class="sw" data-c="#ea580c" data-a="#f59e0b" style="--c1:#ea580c;--c2:#f59e0b" title="Оранж"></button>
+        <button class="sw" data-c="#7c3aed" data-a="#db2777" style="--c1:#7c3aed;--c2:#db2777" title="Фиолет"></button>
+        <button class="sw" data-c="#dc2626" data-a="#f97316" style="--c1:#dc2626;--c2:#f97316" title="Красный"></button>
+        <button class="sw" data-c="#059669" data-a="#0ea5e9" style="--c1:#059669;--c2:#0ea5e9" title="Изумруд"></button>
+        <button class="sw" data-c="#334155" data-a="#0f172a" style="--c1:#334155;--c2:#0f172a" title="Графит"></button>
+      </div>
+      <button class="themebtn" id="themeBtn" title="Тёмная / светлая тема">🌙</button>
+    </div>
   </div>
 </header>
 
@@ -170,7 +215,18 @@
 
 <footer>
   <div class="foot">
-    <div class="copy">© 2026 GadgetHub · демо с сервером поддержки</div>
+    <div>
+      <div class="copy">© 2026 GadgetHub · демо с сервером поддержки</div>
+      <div class="sponsor">При поддержке <a href="https://deworld.su" target="_blank" rel="noopener">deworld.su</a></div>
+    </div>
+    <div class="socials">
+      <a href="https://discord.deworld.su" target="_blank" rel="noopener">Discord</a>
+      <a href="https://telegram.deworld.su" target="_blank" rel="noopener">Telegram</a>
+      <a href="https://vk.deworld.su" target="_blank" rel="noopener">VK</a>
+      <a href="https://max.deworld.su" target="_blank" rel="noopener">MAX</a>
+      <a href="https://youtube.deworld.su" target="_blank" rel="noopener">YouTube</a>
+      <a href="https://tiktok.deworld.su" target="_blank" rel="noopener">TikTok</a>
+    </div>
     <div>
       <a href="http://localhost:3000/admin">Админ-панель →</a>
       <a href="mailto:support@gadgethub.ru">support@gadgethub.ru</a>
@@ -188,5 +244,34 @@ window.ADAPTIVE_WIDGET = {
 };
 </script>
 <script src="../widget/adaptive-widget.js"></script>
+<script>
+(function () {
+  var html = document.documentElement;
+  var sw = Array.prototype.slice.call(document.querySelectorAll('.sw'));
+  sw.forEach(function (b) {
+    b.addEventListener('click', function () {
+      sw.forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      html.style.setProperty('--brand', b.getAttribute('data-c'));
+      html.style.setProperty('--accent', b.getAttribute('data-a'));
+      if (window.AdaptiveWidget) window.AdaptiveWidget.refresh();
+    });
+  });
+  var btn = document.getElementById('themeBtn');
+  btn.addEventListener('click', function () {
+    var dark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', dark ? 'light' : 'dark');
+    btn.textContent = dark ? '🌙' : '☀️';
+    if (window.AdaptiveWidget) window.AdaptiveWidget.refresh();
+  });
+  var els = Array.prototype.slice.call(document.querySelectorAll('main section, .product'));
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    els.forEach(function (el) { el.classList.add('reveal'); io.observe(el); });
+  }
+})();
+</script>
 </body>
 </html>
