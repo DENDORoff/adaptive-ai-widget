@@ -74,6 +74,9 @@
   .row { display: flex; gap: 12px; }
   .row > div { flex: 1; }
   .ok { color: var(--green); } .warn { color: var(--yellow); } .err { color: var(--red); }
+  .badge.err { color: var(--red); border-color: rgba(220,38,38,.4); }
+  .banner { padding: 10px 16px; margin: 0 20px 6px; border-radius: 10px; font-size: 12.5px; display: none; }
+  .banner.err { background: rgba(220,38,38,.12); color: var(--red); border: 1px solid rgba(220,38,38,.35); }
 </style>
 </head>
 <body>
@@ -86,6 +89,8 @@
   </nav>
   <span class="badge" id="conn" style="margin-left:auto">подключение...</span>
 </header>
+
+<div id="apibanner" class="banner err"></div>
 
 <div class="view on" id="view-chats">
   <div class="wrap">
@@ -255,11 +260,32 @@
   async function refreshList() {
     try {
       chats = await api('/api/chats');
-      $('#conn').textContent = 'онлайн · ' + chats.length + ' чатов';
+      markOnline();
       renderList();
     } catch (e) {
-      $('#conn').textContent = 'сервер недоступен';
+      offline(e && e.message);
     }
+  }
+
+  function markOnline() {
+    $('#conn').classList.remove('err');
+    $('#conn').textContent = 'онлайн · ' + chats.length + ' чатов';
+    $('#apibanner').style.display = 'none';
+  }
+
+  function offline(reason) {
+    const isFile = location.protocol === 'file:';
+    $('#conn').classList.add('err');
+    $('#conn').textContent = isFile ? 'открыт как файл — нужен http' : 'сервер недоступен';
+    const el = $('#apibanner');
+    el.textContent = isFile
+      ? 'Админка открыта как файл (file://). Запустите `node server/server.js` и откройте http://localhost:3000/admin'
+      : (reason || 'сеть/API недоступен') + '. Запустите `node server/server.js` и откройте http://localhost:3000/admin (не как файл).';
+    el.style.display = 'block';
+    const emptyEl = $('#list .empty');
+    if (emptyEl) emptyEl.textContent = isFile
+      ? 'Нужен сервер: node server/server.js → откройте http://localhost:3000/admin'
+      : 'Сервер не отвечает — проверьте: запущен ли сервер и открыта ли админка по http://localhost:3000/admin';
   }
 
   function renderList() {
@@ -296,7 +322,7 @@
     try {
       current = await api('/api/chat/' + currentId + '/full');
       renderDetail();
-    } catch (e) { toast('Не удалось загрузить чат'); }
+    } catch (e) { toast('Не удалось загрузить чат'); offline(e && e.message); }
   }
 
   function renderDetail() {
@@ -373,7 +399,7 @@
         ? '<table><tr><th>Запрос</th><th>Сайт</th><th>Когда</th></tr>' + s.unresolvedQueries.map((q) => '<tr><td>' + esc(q.q) + '</td><td>' + esc(q.site) + '</td><td>' + esc(new Date(q.ts).toLocaleString('ru-RU')) + '</td></tr>').join('') + '</table>'
         : 'нет данных';
       $('#st_ai').textContent = 'ИИ: ' + s.ai.provider + ' · ' + s.ai.model + ' · ' + s.ai.endpoint + ' · отправитель ' + s.ai.from + (s.ai.instructionsSet ? ' · инструкции заданы' : ' · инструкции не заданы');
-    } catch (e) { toast('Не удалось загрузить статистику'); }
+    } catch (e) { toast('Не удалось загрузить статистику'); $('#st_ai').textContent = 'сервер не доступен'; offline(e && e.message); }
   }
 
   // ---------- Настройки агента ----------
@@ -417,7 +443,7 @@
     } catch (e) { toast('Не удалось сохранить настройки'); }
   });
 
-  refreshList();
+refreshList();
   setInterval(refreshList, 3000);
   setInterval(() => { if ($('#view-stats').classList.contains('on')) loadStats(); }, 5000);
 })();
