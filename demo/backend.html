@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GadgetHub — демо с сервером поддержки</title>
+<meta name="description" content="То же демо, но виджет подключён к серверу поддержки (backend): чаты, статистика и операторы видны в http://localhost:3000/admin.">
+<style>
+  :root {
+    --brand: #0284c7;
+    --accent: #7c3aed;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: #f8fafc; color: #0f172a; line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(120deg, var(--brand), var(--accent));
+    color: #fff; padding: 18px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; }
+  .logo img { width: 34px; height: 34px; border-radius: 8px; }
+  nav a { color: #fff; text-decoration: none; margin-left: 20px; }
+  nav a:hover { text-decoration: underline; }
+  main { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+  h1 { margin-bottom: 8px; }
+  h2 { margin: 36px 0 12px; }
+  .note {
+    background: #ecfeff; border: 1px solid #a5f3fc; border-radius: 12px;
+    padding: 14px 18px; font-size: 13.5px; color: #155e75; margin-bottom: 20px;
+  }
+  .note b { color: #0e7490; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+  .product {
+    background: #fff; border-radius: 14px; padding: 18px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  .product img { width: 100%; border-radius: 10px; margin-bottom: 10px; }
+  .product .name { font-weight: 600; }
+  .product .price { color: var(--brand); font-weight: 700; margin-top: 6px; }
+  .faq-item { background: #fff; border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+  .faq-item h3 { color: var(--accent); margin-bottom: 6px; }
+  .btn { display: inline-block; margin-top: 12px; background: var(--brand); color: #fff; padding: 12px 22px; border-radius: 10px; text-decoration: none; font-weight: 600; }
+  .btn:hover { filter: brightness(1.1); }
+  footer { text-align: center; padding: 30px; color: #64748b; }
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "name": "GadgetHub",
+      "email": "support@gadgethub.ru",
+      "telephone": "+7 800 100 20 30",
+      "address": "Москва, Тверская 12"
+    },
+    {
+      "@type": "Product",
+      "name": "Наушники Aurora X",
+      "description": "Беспроводные наушники с шумоподавлением и 30 часами работы.",
+      "offers": { "@type": "Offer", "price": "7990", "priceCurrency": "RUB" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Как оформить возврат?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Возврат оформляется в течение 14 дней с момента получения: напишите на support@gadgethub.ru, приложите номер заказа, мы вышлем накладную. Деньги вернутся в течение 5 рабочих дней." }
+        },
+        {
+          "@type": "Question",
+          "name": "Какая доставка у вас есть?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Курьером по Москве — за 1 день (бесплатно от 3000 ₽), по России СДЭК и Почтой от 2 до 7 дней." }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230284c7'/%3E%3Ctext x='32' y='42' font-size='30' text-anchor='middle' fill='white'%3E⚡%3C/text%3E%3C/svg%3E" alt="GadgetHub logo">
+    GadgetHub
+  </div>
+  <nav>
+    <a href="#catalog">Каталог</a>
+    <a href="#delivery">Доставка</a>
+    <a href="#returns">Возврат</a>
+    <a href="#faq">Вопросы</a>
+    <a href="#contacts">Контакты</a>
+  </nav>
+</header>
+<main>
+  <h1>Магазин электроники GadgetHub — демо с сервером</h1>
+  <p>Виджет подключён к серверу поддержки. Каждый диалог появляется в <b>http://localhost:3000/admin</b>.</p>
+  <div class="note">
+    <b>Что попробовать:</b> задайте вопрос («Сколько стоят наушники Aurora X?»), введите свой email — диалог появится в админке,
+    там же статистика, перевод на живого оператора и ответ ему по почте.
+  </div>
+  <a class="btn" href="#catalog">Смотреть каталог</a>
+
+  <h2 id="catalog">Каталог</h2>
+  <div class="grid">
+    <div class="product" data-product data-name="Клавиатура MechPro 87" data-price="5490 ₽" data-desc="Механическая клавиатура с подсветкой и свитчами red.">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%23e0f2fe'/%3E%3Ctext x='130' y='80' font-size='18' text-anchor='middle' fill='%230284c7'%3EKlaviatura%3C/text%3E%3C/svg%3E" alt="Клавиатура MechPro 87">
+      <div class="name">Клавиатура MechPro 87</div>
+      <div class="price">5490 ₽</div>
+    </div>
+    <div class="product" data-product data-name="Смарт-часы Pulse S2" data-price="12990 ₽" data-desc="Спортивные часы с GPS и 10 днями автономности.">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%23f3e8ff'/%3E%3Ctext x='130' y='80' font-size='18' text-anchor='middle' fill='%237c3aed'%3EChasy%3C/text%3E%3C/svg%3E" alt="Смарт-часы Pulse S2">
+      <div class="name">Смарт-часы Pulse S2</div>
+      <div class="price">12990 ₽</div>
+    </div>
+    <div class="product" data-product data-name="Наушники Aurora X" data-price="7990 ₽" data-desc="Беспроводные наушники с шумоподавлением.">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%23dbeafe'/%3E%3Ctext x='130' y='80' font-size='18' text-anchor='middle' fill='%230284c7'%3ENaushniki%3C/text%3E%3C/svg%3E" alt="Наушники Aurora X">
+      <div class="name">Наушники Aurora X</div>
+      <div class="price">7990 ₽</div>
+    </div>
+  </div>
+
+  <h2 id="delivery">Доставка</h2>
+  <p>Курьером по Москве — на следующий день, бесплатно при заказе от 3000 ₽. По России отправляем СДЭК и Почтой России: сроки 2–7 рабочих дней. Трек-номер приходит в SMS и на почту.</p>
+
+  <h2 id="returns">Возврат</h2>
+  <p>Товар можно вернуть в течение 14 дней с момента получения. Условия: сохранены товарный вид и упаковка. Оформление — на support@gadgethub.ru, возврат денег занимает до 5 рабочих дней.</p>
+
+  <h2 id="faq">Частые вопросы</h2>
+  <div class="faq-item" data-faq>
+    <h3>Даёте ли гарантию?</h3>
+    <p>Да, на всю технику 12 месяцев гарантии. Обслуживание — в сервисных центрах по всей России.</p>
+  </div>
+  <div class="faq-item" data-faq>
+    <h3>Можно ли оплатить частями?</h3>
+    <p>Да, доступна рассрочка до 4 месяцев без переплаты при оплате от 5000 ₽.</p>
+  </div>
+
+  <h2 id="contacts">Контакты</h2>
+  <p>Телефон: <a href="tel:+78001002030">8 800 100 20 30</a> · Email: <a href="mailto:support@gadgethub.ru">support@gadgethub.ru</a><br>
+  Адрес: Москва, ул. Тверская, 12</p>
+</main>
+<footer>© 2026 GadgetHub</footer>
+<script>
+window.ADAPTIVE_WIDGET = {
+  aiEnabled: true,
+  model: 'qwen2.5:3b',
+  backend: 'http://localhost:3000',     // URL сервера поддержки (его запускает `node server/server.js`)
+  supportEmail: 'support@deworld.su'    // почта, на которую операторы отвечают клиенту
+};
+</script>
+<script src="../widget/adaptive-widget.js"></script>
+</body>
+</html>
