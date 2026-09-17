@@ -139,6 +139,28 @@ async function main() {
   const r3 = await post(base + '/api/chat/chat1/message', { text: 'Сообщение для оператора' });
   check('после handoff AI молчит', r3.mode === 'human' && r3.messages.length === 0, r3.mode);
 
+  console.log('\n== Server: клиентский режим и статусы ==');
+  const chatsHuman = await fetch(base + '/api/chats').then((r) => r.json());
+  const cW = chatsHuman.find((c) => c.id === 'chat1');
+  check('статус human помечен как «ждёт оператора»', cW && cW.status === 'human' && cW.waiting === true, cW && JSON.stringify({ status: cW.status, waiting: cW.waiting }));
+
+  const rs = await post(base + '/api/chat/chat1/resume', {});
+  check('публичный resume возвращает ИИ-режим', rs.ok === true && rs.mode === 'ai', JSON.stringify(rs));
+  const chatsResumed = await fetch(base + '/api/chats').then((r) => r.json());
+  const cW2 = chatsResumed.find((c) => c.id === 'chat1');
+  check('после resume awaiting сброшен', cW2 && cW2.waiting === false, cW2 && String(cW2.waiting));
+
+  await post(base + '/api/init', { chatId: 'chatR', email: 'r@example.com', siteName: 'R', knowledge: KNOWLEDGE });
+  await post(base + '/api/chat/chatR/handoff', {});
+  await post(base + '/api/chat/chatR/reply', { text: 'Опер отвечает' });
+  const chatsAfterReply = await fetch(base + '/api/chats').then((r) => r.json());
+  const cR = chatsAfterReply.find((c) => c.id === 'chatR');
+  check('после ответа оператора статус «оператор отвечает»', cR && cR.status === 'human' && cR.waiting === false, cR && JSON.stringify({ status: cR.status, waiting: cR.waiting }));
+  const rv = await post(base + '/api/chat/chatR/resolve', {});
+  check('публичный resolve закрывает тикет', rv.ok === true && rv.mode === 'closed', JSON.stringify(rv));
+  const fullR = await fetch(base + '/api/chat/chatR/full').then((r) => r.json());
+  check('resolve помечен в тикете и истории', fullR.status === 'closed' && fullR.resolved === true && fullR.messages.some((m) => m.role === 'system' && m.text.indexOf('решён') !== -1), JSON.stringify({ status: fullR.status, resolved: fullR.resolved }));
+
   await post(base + '/api/chat/chat1/instructions', { instructions: 'Всегда предлагать скидку 10%' });
   const full2 = await fetch(base + '/api/chat/chat1/full').then((r) => r.json());
   check('инструкции сохранены', full2.instructions === 'Всегда предлагать скидку 10%');

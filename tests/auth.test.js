@@ -45,6 +45,8 @@ async function main() {
   check('неверный токен → 401', (await api('/api/chats', { headers: { 'x-admin-token': 'BAD' } })).status === 401);
   check('верный токен → 200', (await api('/api/chats', { headers: { 'x-admin-token': 'SECRET' } })).status === 200);
   check('public /api/health без токена → 200', (await api('/api/health')).status === 200);
+  check('public resolve несуществующего чата → 404', (await api('/api/chat/nonexist/resolve', { method: 'POST' })).status === 404);
+  check('public resume несуществующего чата → 404', (await api('/api/chat/nonexist/resume', { method: 'POST' })).status === 404);
 
   console.log('\n== Auth: from без SMTP (bugfix mailer) ==');
   const h = await api('/api/health');

@@ -19,7 +19,8 @@
     aiStyle: true,
     readImages: true,
     vision: false,
-    sound: true
+    sound: true,
+    checkinAfter: 180
   };
 
   var CUSTOM = window.ADAPTIVE_WIDGET || {};
@@ -69,7 +70,7 @@
     get: function (k) { try { return window.localStorage ? localStorage.getItem(k) : null; } catch (e) { return null; } },
     set: function (k, v) { try { if (window.localStorage) localStorage.setItem(k, v); } catch (e) {} }
   };
-  var CHAT = { id: '', email: '', human: false, seen: {}, es: null, backendTurns: 0, rated: false, closing: false, unread: 0 };
+  var CHAT = { id: '', email: '', human: false, seen: {}, es: null, backendTurns: 0, rated: false, closing: false, unread: 0, userTurns: 0, checkinDone: false, checkinPending: false, closed: false, checkinT: null };
   (function initChat() {
     if (!CONFIG.backend) return;
     if (CUSTOM.askEmail === undefined) CONFIG.askEmail = 'optional';
@@ -102,7 +103,16 @@
     emailBad: 'That does not look like an email. Please enter it again:',
     ratingAsk: 'Rate how the agent answered:',
     ratingDone: 'Thank you for your rating!',
-    operatorBtn: 'Talk to a human'
+    operatorBtn: 'Call an operator',
+    backBtn: 'Back to AI',
+    checkinAsk: 'Is your question resolved?',
+    checkinYes: 'Yes, resolved',
+    checkinNo: 'No, I need help',
+    checkinNoMsg: 'No problem — clarify your question, or I can connect an operator.',
+    continueBtn: 'Continue with AI',
+    checkinThanks: 'Great! Thanks. I will be here if you need anything else.',
+    resumeMsg: 'Back to the AI agent — I can answer new questions right away.',
+    resolveClose: 'The ticket is closed. Thanks for reaching out!'
   } : {
     title: 'Ассистент сайта',
     status: 'отвечаю по реальным данным',
@@ -123,7 +133,16 @@
     emailBad: 'Похоже, это не email. Введите почту ещё раз:',
     ratingAsk: 'Как вы оцените ответы агента?',
     ratingDone: 'Спасибо за вашу оценку!',
-    operatorBtn: 'Оператор'
+    operatorBtn: 'Позвать оператора',
+    backBtn: 'Вернуть ИИ',
+    checkinAsk: 'Ваш вопрос решён?',
+    checkinYes: 'Да, решено',
+    checkinNo: 'Нет, нужна помощь',
+    checkinNoMsg: 'Хорошо, продолжим вместе — уточните вопрос или я подключу оператора.',
+    continueBtn: 'Продолжить с ИИ',
+    checkinThanks: 'Отлично! Спасибо. Если понадобится — я рядом.',
+    resumeMsg: 'Возвращаюсь к ИИ-агенту — могу сразу ответить на новые вопросы.',
+    resolveClose: 'Тикет закрыт. Спасибо за обращение!'
   };
 
   var PALETTE = { primary: '#2563eb', accent: '#312e81', bg: '#ffffff', fg: '#111827', font: 'system-ui', radius: 14, dark: false, logo: '' };
@@ -575,7 +594,7 @@ var vpBound = false;
       'will-change:transform,opacity;font-size:14px;line-height:1.5;}',
       '.panel.open{transform:none;opacity:1;pointer-events:auto;}',
       ':host([data-theme-anim]) .fab{animation:themeSwap .6s cubic-bezier(.22,1,.36,1);}',
-      ':host([data-theme-anim]) .panel{animation:themePop .6s cubic-bezier(.22,1,.36,1);}',
+      ':host([data-theme-anim]) .panel.open{animation:themePop .6s cubic-bezier(.22,1,.36,1);}',
       '@keyframes themeSwap{0%{filter:saturate(1.6) brightness(1.08)}100%{filter:none}}',
       '@keyframes themePop{0%{opacity:.55;filter:saturate(1.4) brightness(1.05)}100%{opacity:1;filter:none}}',
       /* Автомасштабирование под окно */
@@ -611,6 +630,19 @@ var vpBound = false;
       '.stars .lbl{font-size:12px;margin-bottom:5px;}',
       '.stars button{background:none;border:none;cursor:pointer;font-size:22px;line-height:1;color:#cbd5e1;padding:0 3px;transition:color .2s ease,transform .22s cubic-bezier(.34,1.56,.64,1);}',
       '.stars button:hover,.stars button.on{color:#fbbf24;transform:scale(1.15);}',
+      '.m .hl{color:' + (dark ? '#93c5fd' : PALETTE.primary) + ';font-weight:600;text-decoration:none;border-bottom:1px solid ' + hexA(PALETTE.primary, .35) + ';}',
+      '.quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}',
+      '.quick button{border:1px solid ' + hexA(PALETTE.primary, .4) + ';background:' + hexA(PALETTE.primary, .1) + ';color:' + (dark ? '#dbeafe' : PALETTE.primary) + ';border-radius:100px;padding:6px 12px;font-size:12.5px;cursor:pointer;transition:background .22s ease,transform .22s cubic-bezier(.34,1.56,.64,1);}',
+      '.quick button:hover{background:' + hexA(PALETTE.primary, .2) + ';transform:translateY(-1px);}',
+      '.foot{display:flex;gap:8px;padding:10px 12px;border-top:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';}',
+      '.foot button{flex:1;border-radius:10px;padding:9px 10px;font-size:12.5px;cursor:pointer;border:1px solid transparent;transition:background .22s ease,color .22s ease,border-color .22s ease,transform .22s cubic-bezier(.34,1.56,.64,1);}',
+      '.foot button:active{transform:scale(.98);}',
+      '.foot .call{border-color:' + hexA(PALETTE.primary, .5) + ';background:' + hexA(PALETTE.primary, .12) + ';color:' + (dark ? '#dbeafe' : PALETTE.primary) + ';}',
+      '.foot .call:hover{background:' + hexA(PALETTE.primary, .22) + ';}',
+      '.foot .back{border-color:' + (dark ? 'rgba(255,255,255,.18)' : 'rgba(0,0,0,.12)') + ';background:transparent;color:' + sub + ';display:none;}',
+      '.foot .back:hover{color:' + panelText + ';border-color:' + PALETTE.primary + ';}',
+      ':host([data-human]) .foot .call{display:none;}',
+      ':host([data-human]) .foot .back{display:block;}',
       '.dots span{display:inline-block;width:6px;height:6px;margin-right:3px;background:' + sub + ';border-radius:50%;animation:blink 1.2s infinite;}',
       '.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}',
       '@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}',
@@ -632,11 +664,11 @@ var vpBound = false;
       '<div class="head">' +
       '<div class="ava">' + SVG_ICON + '</div>' +
       '<div class="titles"><div class="t">' + T.title + '</div><div class="s">' + T.status + '</div></div>' +
-      '<button class="op-btn" data-op title="' + T.operatorBtn + '">' + SVG_OP + '</button>' +
       '<button class="close" aria-label="' + T.close + '">' + SVG_CLOSE + '</button>' +
       '</div>' +
       '<div class="chips"><div class="lbl">' + T.chips + '</div><div data-chips></div></div>' +
       '<div class="msgs"></div>' +
+      '<div class="foot"><button class="call" data-op>' + T.operatorBtn + '</button><button class="back" data-ai>' + T.backBtn + '</button></div>' +
       '<div class="input"><input type="text" placeholder="' + T.input + '"><button aria-label="' + T.send + '">' + SVG_SEND + '</button></div>' +
       '</div>';
   }
@@ -645,19 +677,55 @@ var vpBound = false;
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  // Акцентное форматирование email и телефонов внутри сообщения.
+  function linkify(safe) {
+    return safe
+      .replace(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g, '<a class="hl" href="mailto:$1">$1</a>')
+      .replace(/(\+?\d[\d\s().-]{7,}\d)/g, function (m) {
+        var digits = m.replace(/[^\d+]/g, '');
+        if (digits.length < 9 || digits.length > 16) return m;
+        return '<a class="hl" href="tel:' + digits + '">' + m + '</a>';
+      });
+  }
+
+  function fmt(text) {
+    return linkify(safeHtml(text)).replace(/\n/g, '<br>');
+  }
+
   function addMsg(text, who, name) {
     var div = document.createElement('div');
     div.className = 'b ' + who;
     var html = '';
     if (who === 'bot') {
       html += '<div class="av">' + SVG_ICON + '</div>';
-      html += '<div class="col" style="min-width:0"><div class="name">' + safeHtml(name || T.title) + '</div><div class="m">' + safeHtml(text).replace(/\n/g, '<br>') + '</div></div>';
+      html += '<div class="col" style="min-width:0"><div class="name">' + safeHtml(name || T.title) + '</div><div class="m">' + fmt(text) + '</div></div>';
     } else {
-      html += '<div class="col" style="min-width:0"><div class="m">' + safeHtml(text).replace(/\n/g, '<br>') + '</div></div>';
+      html += '<div class="col" style="min-width:0"><div class="m">' + fmt(text) + '</div></div>';
     }
     div.innerHTML = html;
     msgEl.appendChild(div);
     msgEl.scrollTop = msgEl.scrollHeight;
+    scheduleCheckin(who);
+    return div;
+  }
+
+  // Кнопки быстрого ответа под сообщением бота.
+  function addQuick(text, buttons, name) {
+    var div = addMsg(text, 'bot', name);
+    var box = document.createElement('div');
+    box.className = 'quick';
+    buttons.forEach(function (b) {
+      var btn = document.createElement('button');
+      btn.textContent = b.label;
+      btn.addEventListener('click', function () {
+        box.remove();
+        b.onClick();
+      });
+      box.appendChild(btn);
+    });
+    div.querySelector('.col').appendChild(box);
+    msgEl.scrollTop = msgEl.scrollHeight;
+    return div;
   }
 
   function typing(on) {
@@ -816,6 +884,7 @@ var vpBound = false;
     q = String(q || '').trim();
     if (CONFIG_MODE === 'email') { submitEmail(q); return; }
     if (!q) return;
+    CHAT.userTurns++;
     addMsg(q, 'user');
     inputEl.value = '';
     typing(true);
@@ -823,22 +892,100 @@ var vpBound = false;
     else offlineAsk(q);
   }
 
+  function setHuman(on) {
+    CHAT.human = !!on;
+    if (host) {
+      if (CHAT.human) host.setAttribute('data-human', '');
+      else host.removeAttribute('data-human');
+    }
+    if (CHAT.human) cancelCheckin();
+  }
+
   function doHandoff() {
-    var op = shadow.querySelector('[data-op]');
     if (CHAT.human) return;
     if (!CONFIG.backend) {
       addMsg(T.offlineOperator + CONFIG.supportEmail, 'bot');
       return;
     }
-    CHAT.human = true;
-    if (op) op.classList.add('on');
+    setHuman(true);
     addMsg(T.handoff, 'bot');
     fetch(CONFIG.backend + '/api/chat/' + encodeURIComponent(CHAT.id) + '/handoff', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{}'
     }).then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
-      .catch(function () { CHAT.human = false; if (op) op.classList.remove('on'); addMsg(T.fallback, 'bot'); });
+      .catch(function () { setHuman(false); addMsg(T.fallback, 'bot'); });
+  }
+
+  function doResume() {
+    if (!CHAT.human) return;
+    if (!CONFIG.backend) {
+      setHuman(false);
+      addMsg(T.resumeMsg, 'bot');
+      return;
+    }
+    fetch(CONFIG.backend + '/api/chat/' + encodeURIComponent(CHAT.id) + '/resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    }).then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+      .then(function () { setHuman(false); addMsg(T.resumeMsg, 'bot'); })
+      .catch(function () { addMsg(T.fallback, 'bot'); });
+  }
+
+  function cancelCheckin() {
+    if (CHAT.checkinT) { clearTimeout(CHAT.checkinT); CHAT.checkinT = null; }
+  }
+
+  // ИИ сам спрашивает «решён ли вопрос» после длительной паузы клиента.
+  function scheduleCheckin(who) {
+    if (!CONFIG.checkinAfter || CONFIG.checkinAfter <= 0 || CHAT.checkinDone || CHAT.checkinPending) return;
+    if (who === 'user') { cancelCheckin(); return; }
+    if (!CHAT.userTurns || CHAT.human || CHAT.closed) return;
+    cancelCheckin();
+    CHAT.checkinT = setTimeout(fireCheckin, CONFIG.checkinAfter * 1000);
+  }
+
+  function fireCheckin() {
+    CHAT.checkinT = null;
+    if (CHAT.human || CHAT.closed || CHAT.checkinDone || CHAT.checkinPending) return;
+    if (document.hidden) { CHAT.checkinT = setTimeout(fireCheckin, Math.max(10, CONFIG.checkinAfter) * 1000); return; }
+    CHAT.checkinPending = true;
+    var q = T.checkinAsk;
+    var div = addQuick(q, [
+      { label: T.checkinYes, onClick: function () { resolveYes(); } },
+      { label: T.checkinNo, onClick: function () { resolveNo(); } }
+    ]);
+    notifyIncoming(q);
+    return div;
+  }
+
+  function postResolve() {
+    if (!CONFIG.backend || !CHAT.id) return Promise.resolve();
+    return fetch(CONFIG.backend + '/api/chat/' + encodeURIComponent(CHAT.id) + '/resolve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    }).catch(function () {});
+  }
+
+  function resolveYes() {
+    CHAT.checkinDone = true;
+    CHAT.checkinPending = false;
+    cancelCheckin();
+    addMsg(T.checkinThanks, 'bot');
+    var wantRating = CONFIG.backend && CHAT.id && !CHAT.rated;
+    postResolve();
+    if (wantRating) { CHAT.closing = true; showStarRating(); }
+    else setTimeout(function () { panelEl.classList.remove('open'); }, 700);
+  }
+
+  function resolveNo() {
+    addQuick(T.checkinNoMsg, [
+      { label: T.operatorBtn, onClick: function () { CHAT.checkinPending = false; doHandoff(); } },
+      { label: T.continueBtn, onClick: function () { CHAT.checkinPending = false; cancelCheckin(); } }
+    ]);
+    notifyIncoming(T.checkinNoMsg);
   }
 
   function connectSSE() {
@@ -850,8 +997,9 @@ var vpBound = false;
       es.addEventListener('mode', function (e) {
         try {
           var m = JSON.parse(e.data);
-          if (m.mode === 'human') CHAT.human = true;
-          else if (m.mode === 'ai') CHAT.human = false;
+          if (m.mode === 'human') setHuman(true);
+          else if (m.mode === 'ai') setHuman(false);
+          else if (m.mode === 'closed') { CHAT.closed = true; setHuman(false); cancelCheckin(); statusOk(I18N_EN ? 'ticket closed' : 'тикет закрыт'); }
         } catch (err) {}
       });
     } catch (e) {}
@@ -941,6 +1089,8 @@ var vpBound = false;
     });
     var opBtn = shadow.querySelector('[data-op]');
     if (opBtn) opBtn.addEventListener('click', doHandoff);
+    var aiBtn = shadow.querySelector('[data-ai]');
+    if (aiBtn) aiBtn.addEventListener('click', doResume);
     addMsg((I18N_EN ? 'Hi! I am ' : 'Привет! ') + CONFIG.siteName + (I18N_EN ? '. Ask me about products, delivery or returns — I answer with real data from this site.' : '. Спросите меня о товарах, доставке или возврате — я отвечаю данными этого сайта.'), 'bot');
     if (CONFIG.aiEnabled || CONFIG.backend) checkAI();
     if (CONFIG.backend) {

@@ -20,6 +20,8 @@ let lastMessage = null;
 let lastHandoff = null;
 let lastInstr = null;
 let lastRating = null;
+let lastResume = null;
+let lastResolve = null;
 const chatMode = {};
 const sseClients = Object.create(null);
 let ollamaDown = false;
@@ -110,6 +112,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (u.pathname === '/checkin') {
+    const html = indexHtml.replace("model: 'qwen2.5:3b'", "backend: 'http://localhost:11434',\n  askEmail: false,\n  siteName: 'GadgetHub',\n  checkinAfter: 1");
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
+    return;
+  }
+
   if (u.pathname === '/api/health') {
     jsonRes(res, 200, { ok: true, from: 'support@deworld.su' });
     return;
@@ -157,7 +166,7 @@ const server = http.createServer((req, res) => {
         lastMessage = JSON.parse(body);
         const mode = chatMode[chatId] || 'ai';
         if (mode === 'human') return jsonRes(res, 200, { mode, messages: [] });
-        jsonRes(res, 200, { mode, messages: [{ id: 'm_ai', from: 'bot', text: 'Стоимость по данным сайта: 7990 ₽ (ответ сервера).' }] });
+        jsonRes(res, 200, { mode, messages: [{ id: 'm_ai', from: 'bot', text: 'Стоимость по данным сайта: 7990 ₽ (ответ сервера). Почта support@deworld.su, тел. +7 999 123-45-67.' }] });
       });
       return;
     }
@@ -180,6 +189,20 @@ const server = http.createServer((req, res) => {
       let body = '';
       req.on('data', (c) => (body += c));
       req.on('end', () => { lastRating = JSON.parse(body); jsonRes(res, 200, { ok: true, score: lastRating.score }); });
+      return;
+    }
+
+    if (action === 'resume' && req.method === 'POST') {
+      lastResume = chatId;
+      chatMode[chatId] = 'ai';
+      jsonRes(res, 200, { ok: true, mode: 'ai' });
+      return;
+    }
+
+    if (action === 'resolve' && req.method === 'POST') {
+      lastResolve = chatId;
+      chatMode[chatId] = 'closed';
+      jsonRes(res, 200, { ok: true, mode: 'closed' });
       return;
     }
   }
@@ -545,6 +568,140 @@ async function main() {
   check('панель разворачивается во весь экран на телефоне', fit.w >= fit.vw - 2 && fit.h >= fit.vh - 2, JSON.stringify(fit));
   check('--pw-vh отражает высоту окна', !!fit.pwvh && Math.abs(parseInt(fit.pwvh, 10) - fit.vh) <= 2, fit.pwvh + ' vs ' + fit.vh);
   await page.setViewport({ width: 800, height: 600 });
+
+  // ---------- Тест 14: кнопки «Позвать оператора» и «Вернуть ИИ» ----------
+  console.log('\n== Тест 14: переключение оператор / ИИ из виджета ==');
+  await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+  await page.goto(base() + '/backend', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.shadowRoot && !!host.shadowRoot.querySelector('.fab');
+  });
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.fab').click(); });
+  await page.waitForFunction(() => {
+    const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.b .m');
+    const last = msgs[msgs.length - 1];
+    return last && last.textContent.indexOf('email') !== -1;
+  }, { timeout: 10000 });
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const input = s.querySelector('.input input');
+    input.value = 'user@example.com';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  });
+  await new Promise((r) => setTimeout(r, 500));
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const input = s.querySelector('.input input');
+    input.value = 'Сколько стоят наушники?';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.b .m');
+    const last = msgs[msgs.length - 1];
+    return last && last.textContent.indexOf('ответ сервера') !== -1;
+  }, { timeout: 10000 });
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-op]').click(); });
+  await new Promise((r) => setTimeout(r, 700));
+  const opState = await page.evaluate(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    const s = host.shadowRoot;
+    return { human: host.hasAttribute('data-human'), callShown: getComputedStyle(s.querySelector('[data-op]')).display !== 'none', backShown: getComputedStyle(s.querySelector('[data-ai]')).display !== 'none' };
+  });
+  check('после «Позвать оператора» показана кнопка «Вернуть ИИ»', opState.human && opState.backShown && !opState.callShown, JSON.stringify(opState));
+  check('handoff ушёл на сервер', lastHandoff !== null, lastHandoff);
+
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('[data-ai]').click(); });
+  await new Promise((r) => setTimeout(r, 700));
+  const aiState = await page.evaluate(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return { human: host.hasAttribute('data-human') };
+  });
+  check('«Вернуть ИИ» отправила resume и сняла режим оператора', lastResume !== null && !aiState.human, 'resume=' + lastResume + ' human=' + aiState.human);
+
+  // ---------- Тест 15: акцентное форматирование email и телефона ----------
+  console.log('\n== Тест 15: акцентные email и телефоны ==');
+  const links = await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    return {
+      mail: !!s.querySelector('a.hl[href^="mailto:"]'),
+      tel: !!s.querySelector('a.hl[href^="tel:"]'),
+      telDigits: (s.querySelector('a.hl[href^="tel:"]') || {}).getAttribute ? s.querySelector('a.hl[href^="tel:"]').getAttribute('href') : ''
+    };
+  });
+  check('email подсвечен как ссылка', links.mail, JSON.stringify(links));
+  check('телефон подсвечен как ссылка', links.tel && links.telDigits.replace(/[^\d+]/g, '').length >= 10, links.telDigits);
+
+  // ---------- Тест 16: ИИ-чек-ин «решён ли вопрос» ----------
+  console.log('\n== Тест 16: ИИ сам спрашивает про решение вопроса ==');
+  lastResolve = null; lastRating = null; lastHandoff = null;
+  await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+  await page.goto(base() + '/checkin', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.shadowRoot && !!host.shadowRoot.querySelector('.fab');
+  });
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.fab').click(); });
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const input = s.querySelector('.input input');
+    input.value = 'Сколько стоят наушники?';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    return Array.from(s.querySelectorAll('.quick button')).some((b) => b.textContent.indexOf('Да, решено') !== -1);
+  }, { timeout: 12000 });
+  const checkinText = await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    return Array.from(s.querySelectorAll('.m')).map((m) => m.textContent).join(' | ');
+  });
+  check('после паузы ИИ спрашивает «Ваш вопрос решён?»', checkinText.indexOf('Ваш вопрос решён') !== -1, checkinText.slice(-80));
+
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    Array.from(s.querySelectorAll('.quick button')).find((b) => b.textContent.indexOf('Да, решено') !== -1).click();
+  });
+  await page.waitForFunction(() => !!document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.stars [data-star]'), { timeout: 8000 });
+  check('ответ «да» → запрошена оценка', true);
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.stars [data-star="5"]').click(); });
+  await new Promise((r) => setTimeout(r, 500));
+  check('ответ «да» → тикет закрыт на сервере', lastResolve !== null, 'resolve=' + lastResolve);
+  check('ответ «да» → оценка отправлена', !!lastRating && lastRating.score === 5, lastRating && lastRating.score);
+
+  lastHandoff = null;
+  await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+  await page.goto(base() + '/checkin', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.shadowRoot && !!host.shadowRoot.querySelector('.fab');
+  });
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.fab').click(); });
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const input = s.querySelector('.input input');
+    input.value = 'Не помогли ваши ответы';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    return Array.from(s.querySelectorAll('.quick button')).some((b) => b.textContent.indexOf('Да, решено') !== -1);
+  }, { timeout: 12000 });
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    Array.from(s.querySelectorAll('.quick button')).find((b) => b.textContent.indexOf('Нет, нужна помощь') !== -1).click();
+  });
+  await page.waitForFunction(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    return Array.from(s.querySelectorAll('.quick button')).some((b) => b.textContent.indexOf('Позвать оператора') !== -1);
+  }, { timeout: 6000 });
+  check('ответ «нет» → предложен оператор или продолжение', true);
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    Array.from(s.querySelectorAll('.quick button')).find((b) => b.textContent.indexOf('Позвать оператора') !== -1).click();
+  });
+  await new Promise((r) => setTimeout(r, 600));
+  check('из чек-ина можно позвать оператора', lastHandoff !== null, lastHandoff);
 
   check('итог: нет ошибок в консоли на всей сессии', pageErrors.length === 0, pageErrors.join('; '));
 

@@ -101,6 +101,9 @@
   .sw.on { border-color: var(--ink); box-shadow: 0 0 0 2px rgba(125,125,125,.35); }
   .themebtn { background: var(--ink); color: #fff; border: none; width: 34px; height: 34px; border-radius: 10px; cursor: pointer; font-size: 16px; line-height: 1; }
   html[data-theme="dark"] .themebtn { background: #1f2937; }
+  .ctl { appearance: none; -webkit-appearance: none; background: var(--ink); color: #fff; border: 1px solid transparent; border-radius: 10px; padding: 8px 30px 8px 12px; font-size: 12.5px; cursor: pointer; outline: none; background-image: linear-gradient(45deg,transparent 50%,rgba(255,255,255,.7) 50%),linear-gradient(135deg,rgba(255,255,255,.7) 50%,transparent 50%); background-position: calc(100% - 16px) 50%,calc(100% - 11px) 50%; background-size: 5px 5px,5px 5px; background-repeat: no-repeat; }
+  html[data-theme="dark"] .ctl { background-color: #1f2937; }
+  .ctl option { color: #0f172a; }
 
   /* --- Соцсети --- */
   .socials { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -201,15 +204,18 @@
       <a class="btn-line" href="#contacts">Корзина</a>
     </nav>
     <div class="controls">
-      <div class="swatches" id="swatches" title="Цветовая палитра">
-        <button class="sw on" data-c="#0284c7" data-a="#7c3aed" style="--c1:#0284c7;--c2:#7c3aed" title="Небо"></button>
-        <button class="sw" data-c="#ea580c" data-a="#f59e0b" style="--c1:#ea580c;--c2:#f59e0b" title="Оранж"></button>
-        <button class="sw" data-c="#7c3aed" data-a="#db2777" style="--c1:#7c3aed;--c2:#db2777" title="Фиолет"></button>
-        <button class="sw" data-c="#dc2626" data-a="#f97316" style="--c1:#dc2626;--c2:#f97316" title="Красный"></button>
-        <button class="sw" data-c="#059669" data-a="#0ea5e9" style="--c1:#059669;--c2:#0ea5e9" title="Изумруд"></button>
-        <button class="sw" data-c="#334155" data-a="#0f172a" style="--c1:#334155;--c2:#0f172a" title="Графит"></button>
-      </div>
-      <button class="themebtn" id="themeBtn" title="Тёмная / светлая тема">🌙</button>
+      <select class="ctl" id="palSel" title="Цветовая палитра" aria-label="Цветовая палитра">
+        <option value="#0284c7|#7c3aed" selected>Небо</option>
+        <option value="#ea580c|#f59e0b">Оранж</option>
+        <option value="#7c3aed|#db2777">Фиолет</option>
+        <option value="#dc2626|#f97316">Красный</option>
+        <option value="#059669|#0ea5e9">Изумруд</option>
+        <option value="#334155|#0f172a">Графит</option>
+      </select>
+      <select class="ctl" id="themeSel" title="Тема" aria-label="Тема">
+        <option value="light" selected>Светлая тема</option>
+        <option value="dark">Тёмная тема</option>
+      </select>
     </div>
   </div>
 </header>
@@ -418,21 +424,17 @@ window.ADAPTIVE_WIDGET = {
 <script>
 (function () {
   var html = document.documentElement;
-  var sw = Array.prototype.slice.call(document.querySelectorAll('.sw'));
-  sw.forEach(function (b) {
-    b.addEventListener('click', function () {
-      sw.forEach(function (x) { x.classList.remove('on'); });
-      b.classList.add('on');
-      html.style.setProperty('--brand', b.getAttribute('data-c'));
-      html.style.setProperty('--accent', b.getAttribute('data-a'));
-      if (window.AdaptiveWidget) window.AdaptiveWidget.refresh();
-    });
+  var palSel = document.getElementById('palSel');
+  var themeSel = document.getElementById('themeSel');
+  if (themeSel) themeSel.value = html.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  if (palSel) palSel.addEventListener('change', function () {
+    var parts = palSel.value.split('|');
+    html.style.setProperty('--brand', parts[0]);
+    html.style.setProperty('--accent', parts[1]);
+    if (window.AdaptiveWidget) window.AdaptiveWidget.refresh();
   });
-  var btn = document.getElementById('themeBtn');
-  btn.addEventListener('click', function () {
-    var dark = html.getAttribute('data-theme') === 'dark';
-    html.setAttribute('data-theme', dark ? 'light' : 'dark');
-    btn.textContent = dark ? '🌙' : '☀️';
+  if (themeSel) themeSel.addEventListener('change', function () {
+    html.setAttribute('data-theme', themeSel.value);
     if (window.AdaptiveWidget) window.AdaptiveWidget.refresh();
   });
   var els = Array.prototype.slice.call(document.querySelectorAll('main section, .trust, .product, blockquote'));

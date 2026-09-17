@@ -38,6 +38,8 @@
   .st { padding: 2px 8px; border-radius: 100px; font-size: 11px; white-space: nowrap; }
   .st.ai { background: rgba(99,102,241,.2); color: #a5b4fc; }
   .st.human { background: rgba(168,85,247,.2); color: var(--violet); }
+  .st.human.wait { background: rgba(251,191,36,.18); color: #fbbf24; animation: stPulse 1.8s ease-in-out infinite; }
+  @keyframes stPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(251,191,36,.35); } 50% { box-shadow: 0 0 0 4px rgba(251,191,36,0); } }
   .st.closed { background: rgba(148,163,184,.2); color: var(--sub); }
   .pills { display: flex; gap: 4px; }
   .pill { font-size: 10.5px; border-radius: 100px; padding: 1px 7px; background: rgba(148,163,184,.16); color: var(--sub); }
@@ -51,14 +53,22 @@
   button.primary:hover { filter: brightness(1.1); }
   button.danger:hover { border-color: var(--red); color: var(--red); }
   .msgs { flex: 1; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); padding: 14px; max-height: 45vh; }
-  .msg { margin-bottom: 10px; display: flex; }
-  .msg .bub { max-width: 80%; padding: 8px 13px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-  .msg.user { justify-content: flex-end; } .msg.user .bub { background: #312e81; }
-  .msg.bot .bub { background: #1e293b; }
-  .msg.agent .bub { background: #4a1d53; border: 1px solid rgba(168,85,247,.4); }
-  .msg.system { justify-content: center; } .msg.system .bub { background: transparent; color: var(--sub); font-size: 12px; }
+  .msg { margin-bottom: 12px; display: flex; align-items: flex-end; }
+  .msg .ava { width: 28px; height: 28px; border-radius: 50%; flex: 0 0 28px; margin: 0 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; background: #334155; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg.user .ava { background: #4338ca; }
+  .msg.bot .ava { background: #0284c7; }
+  .msg.agent .ava { background: #a855f7; }
+  .msg.system .ava { display: none; }
+  .msg .bub { max-width: 76%; padding: 8px 13px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .msg.user .bub { background: #312e81; border-top-right-radius: 4px; }
+  .msg.bot .bub { background: #1e293b; border-top-left-radius: 4px; }
+  .msg.agent .bub { background: #4a1d53; border: 1px solid rgba(168,85,247,.4); border-top-left-radius: 4px; }
+  .msg.system { justify-content: center; } .msg.system .bub { background: transparent; color: var(--sub); font-size: 12px; max-width: 100%; }
   .msg .meta { display: block; font-size: 10.5px; color: var(--sub); margin-bottom: 2px; }
   .msg.new { animation: msgIn .35s ease both; }
+  .legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--sub); margin: 2px 0 8px; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
   @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   .connwrap { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sub); transition: .2s; }
@@ -153,6 +163,11 @@
             <button id="btn_ai">Вернуть ИИ</button>
             <button class="danger" id="btn_close">Закрыть</button>
           </div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#4338ca"></i>Клиент — справа</span>
+          <span><i style="background:#0284c7"></i>ИИ-агент</span>
+          <span><i style="background:#a855f7"></i>Оператор</span>
         </div>
         <div class="msgs" id="d_msgs"></div>
         <div class="reply">
@@ -432,6 +447,26 @@
     return true;
   }
 
+  function chatWaiting(c) {
+    if (c.waiting !== undefined) return !!c.waiting;
+    const ms = c.messages || [];
+    for (let i = ms.length - 1; i >= 0; i--) {
+      if (ms[i].role === 'agent') return false;
+      if (ms[i].role === 'user') return true;
+    }
+    return c.status === 'human';
+  }
+
+  function statusLabel(c) {
+    if (c.status === 'closed') return 'Закрыт';
+    if (c.status === 'human') return chatWaiting(c) ? 'Ждёт оператора' : 'Оператор отвечает';
+    return 'Общается с ИИ';
+  }
+
+  function statusClass(c) {
+    return 'st ' + c.status + (c.status === 'human' && chatWaiting(c) ? ' wait' : '');
+  }
+
   function renderList() {
     const list = $('#list');
     const filtered = chats.filter(chatMatches);
@@ -442,7 +477,7 @@
       if ((c.unresolvedCount || 0) > 0) pills.push('<span class="pill err">нерешённое: ' + c.unresolvedCount + '</span>');
       if (c.rating) pills.push('<span class="pill">⭐' + c.rating + '</span>');
       return '<div class="chat-card' + (c.id === currentId ? ' active' : '') + '" data-id="' + esc(c.id) + '">' +
-        '<div class="top"><span class="site">' + esc(c.siteName || 'Чат') + '</span><span class="st ' + esc(c.status) + '">' + esc(c.status) + '</span></div>' +
+        '<div class="top"><span class="site">' + esc(c.siteName || 'Чат') + '</span><span class="' + statusClass(c) + '">' + esc(statusLabel(c)) + '</span></div>' +
         '<div class="email">' + esc(c.email || '— без почты') + ' <span class="pills">' + pills.join('') + '</span></div>' +
         '<div class="last">' + esc(c.lastText || '…') + ' · ' + esc(d) + '</div>' +
       '</div>';
@@ -467,7 +502,7 @@
   function detailSig(c) {
     const msgs = c.messages || [];
     const last = msgs[msgs.length - 1] || {};
-    return msgs.length + '|' + (last.ts || '') + '|' + c.status + '|' + (c.rating || '');
+    return msgs.length + '|' + (last.ts || '') + '|' + c.status + '|' + (c.rating || '') + '|' + (chatWaiting(c) ? 'w' : '-');
   }
 
   async function loadDetail(soft) {
@@ -489,14 +524,16 @@
     const c = current;
     $('#d_site').textContent = c.siteName || 'Чат ' + c.id;
     const st = $('#d_status');
-    st.textContent = c.status + (c.rating ? ' · ⭐' + c.rating : '');
-    st.className = 'st ' + c.status;
+    st.textContent = statusLabel(c) + (c.rating ? ' · ⭐' + c.rating : '');
+    st.className = statusClass(c);
     $('#d_email').textContent = '✉ ' + (c.email || '—') + ' · ' + new Date(c.createdAt).toLocaleString('ru-RU');
     const names = { user: 'Клиент', bot: 'ИИ-агент', agent: 'Оператор', system: 'Система' };
+    const initials = { user: 'К', bot: 'ИИ', agent: 'О', system: '·' };
     const msgs = c.messages || [];
     const prev = soft ? lastMsgCount : 0;
     $('#d_msgs').innerHTML = msgs.map((m, i) =>
       '<div class="msg ' + esc(m.role) + (i >= prev ? ' new' : '') + '">' +
+        '<div class="ava">' + esc(initials[m.role] || '?') + '</div>' +
         '<div class="bub"><span class="meta">' + esc(names[m.role] || m.role) + ' · ' + esc(new Date(m.ts).toLocaleTimeString('ru-RU')) + '</span>' + esc(m.text) + '</div>' +
       '</div>'
     ).join('') || '<div class="hint" style="text-align:center">Сообщений пока нет</div>';

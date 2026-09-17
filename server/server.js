@@ -229,11 +229,19 @@ function publicConfig() {
 
 function chip(chat) {
   const ms = chat.messages || [];
+  let waiting = false;
+  if (chat.status === 'human') {
+    for (let i = ms.length - 1; i >= 0; i--) {
+      if (ms[i].role === 'agent') { waiting = false; break; }
+      if (ms[i].role === 'user') { waiting = true; break; }
+    }
+  }
   return {
     id: chat.id,
     email: chat.email || '',
     siteName: chat.siteName || '',
     status: chat.status,
+    waiting,
     createdAt: chat.createdAt,
     updatedAt: chat.updatedAt,
     messageCount: ms.length,
@@ -537,6 +545,29 @@ async function handle(req, res) {
       discord.notify('handoff', { chatId, site: chat.siteName, email: chat.email, text: chat.messages.slice(-3).map((x) => x.text).join('\n') });
       sseSend(chatId, 'mode', { mode: 'human' });
       return json(res, 200, { ok: true, mode: 'human' });
+    }
+
+    if (action === 'resume' && req.method === 'POST') {
+      chat.status = 'ai';
+      chat.lastSeen = now();
+      chat.messages.push({ id: store.genId('m'), role: 'system', text: 'Клиент вернулся к ИИ-агенту', ts: now() });
+      chat.updatedAt = now();
+      logChat('mode_change', chatId, { mode: 'ai' });
+      discord.notify('resume', { chatId, site: chat.siteName, email: chat.email });
+      sseSend(chatId, 'mode', { mode: 'ai' });
+      return json(res, 200, { ok: true, mode: 'ai' });
+    }
+
+    if (action === 'resolve' && req.method === 'POST') {
+      chat.status = 'closed';
+      chat.resolved = true;
+      chat.lastSeen = now();
+      chat.messages.push({ id: store.genId('m'), role: 'system', text: 'Клиент подтвердил, что вопрос решён', ts: now() });
+      chat.updatedAt = now();
+      logChat('resolved', chatId, {});
+      discord.notify('resolved', { chatId, site: chat.siteName, email: chat.email, text: chat.messages.slice(-4).map((x) => x.text).join('\n') });
+      sseSend(chatId, 'mode', { mode: 'closed' });
+      return json(res, 200, { ok: true, mode: 'closed' });
     }
 
     if (action === 'reply' && req.method === 'POST') {

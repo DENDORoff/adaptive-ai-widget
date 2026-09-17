@@ -15,6 +15,8 @@ const TITLES = {
   handoff: 'Запрос оператора',
   unresolved: 'Нерешённый вопрос',
   agent_reply: 'Ответ оператора',
+  resolved: 'Вопрос решён клиентом',
+  resume: 'Возврат к ИИ-агенту',
   rating: 'Оценка диалога',
   ticket_expired: 'Тикет удалён (TTL)',
   email_sent: 'Письмо отправлено'
@@ -26,6 +28,8 @@ const COLORS = {
   handoff: 0xf59e0b,
   unresolved: 0xef4444,
   agent_reply: 0x22c55e,
+  resolved: 0x10b981,
+  resume: 0x6366f1,
   rating: 0xeab308,
   ticket_expired: 0x64748b,
   email_sent: 0x8b5cf6
