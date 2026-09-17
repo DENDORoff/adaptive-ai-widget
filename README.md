@@ -224,10 +224,11 @@ window.ADAPTIVE_WIDGET = {
 ```json
 "discordWebhook": "https://discord.com/api/webhooks/<id>/<token>",
 "discordUsername": "Adaptive Widget",
-"discordAvatar": ""
+"discordAvatar": "",
+"discordInsecure": false
 ```
 
-Пустой `discordWebhook` выключает уведомления. Секрет удобно держать в `server/config.json` (он в `.gitignore`) или в переменной окружения `AW_DISCORD_WEBHOOK`.
+Пустой `discordWebhook` выключает уведомления. Секрет удобно держать в `server/config.json` (он в `.gitignore`) или в переменной окружения `AW_DISCORD_WEBHOOK`. Если корпоративный прокси/антивирус подменяет TLS-сертификаты и Node пишет `CERT…`/`unable to get local issuer certificate`, включите `discordInsecure: true` (или `AW_DISCORD_INSECURE=1`) — проверка сертификата для вебхука будет отключена.
 
 ### Адаптивность и анимации
 

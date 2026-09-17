@@ -34,7 +34,8 @@ function loadConfig() {
     smtp: null,
     discordWebhook: process.env.AW_DISCORD_WEBHOOK || '',
     discordUsername: 'Adaptive Widget',
-    discordAvatar: ''
+    discordAvatar: '',
+    discordInsecure: /^(1|true|yes)$/i.test(process.env.AW_DISCORD_INSECURE || '')
   };
   try {
     if (fs.existsSync(CFG_PATH)) Object.assign(def, JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')));
@@ -220,7 +221,8 @@ function publicConfig() {
       on: !!CFG.discordWebhook,
       webhook: CFG.discordWebhook ? String(CFG.discordWebhook).replace(/\/[^/]{6,}$/, '/…') : '',
       username: CFG.discordUsername || 'Adaptive Widget',
-      avatar: CFG.discordAvatar || ''
+      avatar: CFG.discordAvatar || '',
+      insecure: !!CFG.discordInsecure
     }
   };
 }
@@ -434,6 +436,7 @@ async function handle(req, res) {
     if (typeof body.discordWebhook === 'string') CFG.discordWebhook = body.discordWebhook.trim();
     if (typeof body.discordUsername === 'string' && body.discordUsername.trim()) CFG.discordUsername = body.discordUsername.trim();
     if (typeof body.discordAvatar === 'string') CFG.discordAvatar = body.discordAvatar.trim();
+    if (body.discordInsecure !== undefined) CFG.discordInsecure = !!body.discordInsecure;
     discord.configure(CFG);
     if (CFG.from !== oldFrom) mailer.configure(CFG);
     const persisted = saveConfigFile();

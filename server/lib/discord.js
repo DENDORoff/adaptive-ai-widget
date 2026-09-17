@@ -7,6 +7,7 @@ const { URL } = require('url');
 let webhook = '';
 let username = 'Adaptive Widget';
 let avatar = '';
+let insecure = false;
 
 const TITLES = {
   chat_created: 'Новый чат',
@@ -40,6 +41,7 @@ function configure(cfg) {
   webhook = typeof w === 'string' ? w.trim() : '';
   if (cfg && typeof cfg.discordUsername === 'string' && cfg.discordUsername.trim()) username = cfg.discordUsername.trim();
   if (cfg && typeof cfg.discordAvatar === 'string') avatar = cfg.discordAvatar.trim();
+  insecure = !!(cfg && cfg.discordInsecure);
   return webhook;
 }
 
@@ -103,6 +105,7 @@ function post(payload, done) {
     port: u.port || (u.protocol === 'http:' ? 80 : 443),
     path: u.pathname + (u.search || ''),
     method: 'POST',
+    rejectUnauthorized: !insecure,
     headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
   }, (res) => {
     res.resume();
@@ -111,7 +114,14 @@ function post(payload, done) {
       done();
     });
   });
-  req.on('error', (e) => { console.error('[discord] ' + e.message); done(); });
+  req.on('error', (e) => {
+    if (/CERT|self.signed|issuer/i.test(e.code || e.message || '')) {
+      console.error('[discord] ошибка сертификата (' + (e.code || e.message) + '). Установите discordInsecure: true в config.json, если у вас корпоративный прокси/антивирус подменяет сертификаты.');
+    } else {
+      console.error('[discord] ' + e.message);
+    }
+    done();
+  });
   req.setTimeout(8000, () => req.destroy());
   req.write(body);
   req.end();

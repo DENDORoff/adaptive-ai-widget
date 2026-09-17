@@ -316,6 +316,7 @@
           <div><label>Имя бота</label><input id="cfg_discord_user" placeholder="Adaptive Widget"></div>
           <div><label>Аватар (URL)</label><input id="cfg_discord_avatar" placeholder="https://..."></div>
         </div>
+        <label><input type="checkbox" id="cfg_discord_insecure" style="width:auto;margin-right:6px"> Не проверять TLS-сертификат Discord (для корпоративного прокси/антивируса)</label>
         <p class="hint">В канал уходят события: новый чат, запрос оператора, нерешённый вопрос, оценка диалога, ответ оператора.</p>
         <div class="actions">
           <button id="btn_discord_off">Отключить Discord</button>
@@ -674,6 +675,7 @@
       $('#cfg_discord').placeholder = dc.on ? ('сохранён: ' + dc.webhook) : 'https://discord.com/api/webhooks/...';
       $('#cfg_discord_user').value = dc.username || '';
       $('#cfg_discord_avatar').value = dc.avatar || '';
+      $('#cfg_discord_insecure').checked = !!dc.insecure;
       const dstat = $('#discord_status');
       dstat.className = 'smtp-status ' + (dc.on ? 'on' : 'off');
       dstat.innerHTML = '<span class="dot"></span>' + (dc.on ? 'Discord подключён' : 'Discord выключен');
@@ -700,6 +702,7 @@
     if (dw) body.discordWebhook = dw;
     body.discordUsername = $('#cfg_discord_user').value.trim();
     body.discordAvatar = $('#cfg_discord_avatar').value.trim();
+    body.discordInsecure = $('#cfg_discord_insecure').checked;
     try {
       const r = await api('/api/config', { method: 'PUT', body: JSON.stringify(body) });
       $('#cfg_saved').textContent = r.persisted ? '✓ сохранено в config.json' : '✓ сохранено (в памяти, без файла)';

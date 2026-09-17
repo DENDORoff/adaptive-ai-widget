@@ -134,7 +134,8 @@ window.AdaptiveWidget.open();                       // открыть / close() 
 - Отправка асинхронная и с троттлингом (не блокирует ответы клиенту), таймаут 8с, ошибки не роняют сервер.
 - Настраивается в админке (**Настройки → Уведомления в Discord**) или в `server/config.json`:
   - `discordWebhook` — URL вебхука (пусто = выключено);
-  - `discordUsername` / `discordAvatar` — имя и аватар бота.
+  - `discordUsername` / `discordAvatar` — имя и аватар бота;
+  - `discordInsecure` — отключить проверку TLS-сертификата (нужно, если корпоративный прокси/антивирус подменяет сертификаты и Node пишет `CERT…`).
 - Секрет не коммитится: `server/config.json` в `.gitignore`, также поддерживается `AW_DISCORD_WEBHOOK`.
 
 ## 10. Автомасштабирование и плавные анимации
@@ -160,3 +161,4 @@ window.AdaptiveWidget.open();                       // открыть / close() 
 | `ticketTtlDays` | `14` | админка / `server/config.json` |
 | `smtp` | `null` (outbox) | админка / `server/config.json` |
 | `discordWebhook` | `''` (выкл) | админка / `server/config.json` / `AW_DISCORD_WEBHOOK` |
+| `discordInsecure` | `false` | админка / `server/config.json` / `AW_DISCORD_INSECURE` |
