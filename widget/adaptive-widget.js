@@ -15,7 +15,11 @@
     supportEmail: 'support@deworld.su',
     instructions: '',
     autoOpen: true,
-    teaser: ''
+    teaser: '',
+    aiStyle: true,
+    readImages: true,
+    vision: false,
+    sound: true
   };
 
   var CUSTOM = window.ADAPTIVE_WIDGET || {};
@@ -65,10 +69,10 @@
     get: function (k) { try { return window.localStorage ? localStorage.getItem(k) : null; } catch (e) { return null; } },
     set: function (k, v) { try { if (window.localStorage) localStorage.setItem(k, v); } catch (e) {} }
   };
-  var CHAT = { id: '', email: '', human: false, seen: {}, es: null, backendTurns: 0, rated: false, closing: false };
+  var CHAT = { id: '', email: '', human: false, seen: {}, es: null, backendTurns: 0, rated: false, closing: false, unread: 0 };
   (function initChat() {
     if (!CONFIG.backend) return;
-    if (CUSTOM.askEmail === undefined) CONFIG.askEmail = true;
+    if (CUSTOM.askEmail === undefined) CONFIG.askEmail = 'optional';
     var key = 'pw_chatid|' + (location.hostname || '');
     CHAT.id = LS.get(key) || '';
     if (!CHAT.id) { CHAT.id = 'c_' + Math.random().toString(36).slice(2, 10); LS.set(key, CHAT.id); }
@@ -93,6 +97,7 @@
     operatorWait: 'Message sent to the operator. They will reply here or to your email.',
     offlineOperator: 'Please contact support: ',
     emailAsk: 'Leave your email so we can reply even if you close this tab:',
+    emailSkip: 'OK, let us continue without email — answers will appear right here.',
     emailDone: 'Thanks! Now answers can also be sent to your email.',
     emailBad: 'That does not look like an email. Please enter it again:',
     ratingAsk: 'Rate how the agent answered:',
@@ -113,6 +118,7 @@
     operatorWait: 'Сообщение передано оператору. Он ответит здесь или на вашу почту.',
     offlineOperator: 'Свяжитесь с нами напрямую: ',
     emailAsk: 'Оставьте ваш email, чтобы мы могли ответить, даже если вы закроете эту вкладку:',
+    emailSkip: 'Хорошо, продолжим без email — ответы появятся прямо в этом чате.',
     emailDone: 'Спасибо! Теперь ответы могут приходить и на вашу почту.',
     emailBad: 'Похоже, это не email. Введите почту ещё раз:',
     ratingAsk: 'Как вы оцените ответы агента?',
@@ -160,16 +166,17 @@
   function plausible(c) { return /^#[0-9a-f]{3,8}$/i.test(c); }
 
   function extractStyle() {
+    PALETTE.found = false;
     var rootEl = document.documentElement;
     var VARS = ['--brand', '--primary', '--accent', '--color-primary', '--color-accent', '--main-color', '--site-color'];
     var i, v;
     for (i = 0; i < VARS.length; i++) {
       v = cssVar(rootEl, VARS[i]);
-      if (plausible(v)) { PALETTE.primary = v; break; }
+      if (plausible(v)) { PALETTE.primary = v; PALETTE.found = true; break; }
     }
     if (!plausible(PALETTE.primary)) {
       var lnk = document.querySelector('a');
-      if (lnk) { var c = rgbToHex(getComputedStyle(lnk).color); if (plausible(c)) PALETTE.primary = c; }
+      if (lnk) { var c = rgbToHex(getComputedStyle(lnk).color); if (plausible(c)) { PALETTE.primary = c; PALETTE.found = true; } }
     }
     var acc = cssVar(rootEl, '--accent');
     PALETTE.accent = plausible(acc) ? acc : shade(PALETTE.primary, 0.55);
@@ -311,12 +318,46 @@
     if (mails.length || tels.length) addItem('Контакты', mails.concat(tels).join(', '));
   }
 
+  var IMAGE_LIST = [];
+
+  function extractImages() {
+    if (!CONFIG.readImages) return;
+    var imgs = document.querySelectorAll('img');
+    var seenSrc = {};
+    var i, im, alt, w, src, parent, name, title, j, hit;
+    for (i = 0; i < imgs.length && IMAGE_LIST.length < 12; i++) {
+      im = imgs[i];
+      src = im.currentSrc || im.src || '';
+      if (!src) continue;
+      w = im.offsetWidth || im.naturalWidth || 0;
+      if (w && w < 48) continue;
+      alt = (im.alt || '').trim();
+      parent = im.closest ? im.closest('[data-name]') : null;
+      name = parent ? String(parent.getAttribute('data-name') || '') : '';
+      if (!alt && !name) continue;
+      if (seenSrc[src]) continue;
+      title = (alt || name || '').slice(0, 80);
+      const short = src.indexOf('data:') === 0 ? src.slice(0, 120) : src;
+      hit = null;
+      for (j = 0; j < KNOW.length; j++) { if (KNOW[j].title === title) { hit = KNOW[j]; break; } }
+      if (hit) {
+        if (hit.urls.length < 5) hit.urls.push(short);
+        seenSrc[src] = 1;
+        continue;
+      }
+      seenSrc[src] = 1;
+      IMAGE_LIST.push({ alt: alt, src: src });
+      addItem(title || 'Изображение сайта', 'Изображение сайта: ' + (alt || title || 'без подписи') + '. Ссылка: ' + short, [short]);
+    }
+  }
+
   function buildKnowledge() {
     addItem('О сайте', document.querySelector('meta[name="description"]') ? document.querySelector('meta[name="description"]').getAttribute('content') : '');
     extractJsonLd();
     extractHeadings();
     extractFaq();
     extractProducts();
+    extractImages();
     extractLinks();
     while (KNOW.length > 60) KNOW.pop();
   }
@@ -422,6 +463,62 @@
     }).catch(function () { return null; });
   }
 
+  function maybeDescribeImages() {
+    if (!CONFIG.vision || !IMAGE_LIST.length) return Promise.resolve(null);
+    var parts = [{ type: 'text', text: 'Опиши одним коротким абзацем, что изображено на картинках этого сайта. Укажи цвета и стиль, если заметишь.' }];
+    IMAGE_LIST.slice(0, 4).forEach(function (img) {
+      parts.push({ type: 'image_url', image_url: { url: img.src } });
+    });
+    var headers = { 'Content-Type': 'application/json' };
+    if (CONFIG.apiKey) headers['Authorization'] = 'Bearer ' + CONFIG.apiKey;
+    return fetch(BACKEND.endpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ model: BACKEND.model, messages: [{ role: 'user', content: parts }], temperature: 0.3 })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('api error');
+      return r.json();
+    }).then(function (data) {
+      var t = data.choices && data.choices[0] && data.choices[0].message ? String(data.choices[0].message.content || '').trim() : '';
+      if (!t) return null;
+      addItem('Описание изображений', t.slice(0, 800));
+      indexKnowledge();
+      return t;
+    }).catch(function () { return null; });
+  }
+
+  function aiSuggestStyle() {
+    var sys = 'Ты — стилист веб-сайтов. По описанию страницы подбери фирменную палитру. Ответь ТОЛЬКО валидным JSON без текста вокруг, вида {"primary":"#...","accent":"#...","bg":"#...","dark":true|false,"radius":12}. primary и accent — контрастные современные цвета, bg — цвет фона страницы, dark — тёмная тема ли это, radius — скругление (0-30).';
+    var headers = { 'Content-Type': 'application/json' };
+    if (CONFIG.apiKey) headers['Authorization'] = 'Bearer ' + CONFIG.apiKey;
+    return fetch(BACKEND.endpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({
+        model: BACKEND.model,
+        messages: [{ role: 'system', content: sys }, { role: 'user', content: 'Страница: ' + CONFIG.siteName + '\n\n' + context('о сайте') }],
+        temperature: 0.4
+      })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('api error');
+      return r.json();
+    }).then(function (data) {
+      var txt = data.choices && data.choices[0] && data.choices[0].message ? String(data.choices[0].message.content || '') : '';
+      var m = txt.match(/\{[^]*\}/);
+      if (!m) throw new Error('no json');
+      var o = JSON.parse(m[0]);
+      if (!o || !plausible(o.primary) || !plausible(o.accent) || !plausible(o.bg)) throw new Error('bad palette');
+      PALETTE.primary = o.primary;
+      PALETTE.accent = o.accent;
+      PALETTE.bg = o.bg;
+      PALETTE.dark = !!o.dark;
+      PALETTE.fg = PALETTE.dark ? '#f3f4f6' : '#111827';
+      if (isFinite(o.radius) && o.radius > 0 && o.radius <= 30) PALETTE.radius = Math.round(o.radius);
+      PALETTE._ai = true;
+      return o;
+    }).catch(function () { return null; }).then(function () { buildUI(); });
+  }
+
   function answerText(q) {
     var best = findBest(q);
     if (!best) return { text: T.fallback, best: null };
@@ -453,6 +550,10 @@
       '.fab{position:fixed;' + (CONFIG.position === 'left' ? 'left:20px' : 'right:20px') + ';bottom:20px;width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;z-index:2147483000;',
       'background:linear-gradient(135deg,' + PALETTE.primary + ',' + PALETTE.accent + ');box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .2s ease;padding:0;}',
       '.fab:hover{transform:scale(1.06);}',
+      '.fab .halo{position:absolute;inset:-4px;border-radius:50%;border:2px solid ' + PALETTE.accent + ';opacity:0;pointer-events:none;}',
+      '.fab.new .halo{animation:haloPulse 2.2s ease-out infinite;}',
+      '@keyframes haloPulse{0%{transform:scale(.9);opacity:.9}70%{transform:scale(1.35);opacity:0}100%{opacity:0}}',
+      '.fab .ubadge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:10px;background:#ef4444;color:#fff;font-size:11px;line-height:18px;text-align:center;padding:0 5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.3);display:none;align-items:center;justify-content:center;}',
       '.panel{position:fixed;' + (CONFIG.position === 'left' ? 'left:20px' : 'right:20px') + ';bottom:88px;width:380px;max-width:calc(100vw - 32px);height:560px;max-height:min(560px,calc(100vh - 120px));',
       'background:' + panelBg + ';color:' + panelText + ';border-radius:' + (PALETTE.radius + 6) + 'px;overflow:hidden;display:flex;flex-direction:column;z-index:2147483001;',
       'box-shadow:0 20px 60px rgba(0,0,0,.3);border:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';',
@@ -475,6 +576,8 @@
       '.chip:hover{background:' + (dark ? '#374151' : '#e2e8f0') + ';border-color:' + PALETTE.primary + ';color:' + PALETTE.primary + ';}',
       '.msgs{flex:1;overflow-y:auto;padding:14px 14px 4px;scroll-behavior:smooth;}',
       '.b{display:flex;margin-bottom:10px;}',
+      '.b{animation:msgIn .25s ease both;}',
+      '@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}',
       '.b .av{width:28px;height:28px;border-radius:50%;flex:0 0 28px;margin-right:8px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,' + PALETTE.primary + ',' + PALETTE.accent + ');}',
       '.b.user{justify-content:flex-end;}',
       '.b .m{max-width:78%;padding:9px 13px;border-radius:14px;white-space:pre-wrap;word-break:break-word;}',
@@ -500,7 +603,7 @@
   }
 
   function markup() {
-    return '<button class="fab" title="' + T.title + '" aria-label="' + T.title + '">' + SVG_ICON + '</button>' +
+    return '<button class="fab" title="' + T.title + '" aria-label="' + T.title + '">' + SVG_ICON + '<span class="halo"></span><span class="ubadge" style="display:none">0</span></button>' +
       '<div class="teaser" style="display:none">' + safeHtml(CONFIG.teaser || T.preview) + '<button class="x">✕</button></div>' +
       '<div class="panel">' +
       '<div class="head">' +
@@ -552,6 +655,61 @@
     box.innerHTML = items.map(function (t) { return '<button class="chip">' + safeHtml(t.length > 42 ? t.slice(0, 42) + '…' : t) + '</button>'; }).join('');
   }
 
+  var AUDIO_OK = false, AUDIO_CTX = null;
+  document.addEventListener('click', function () { AUDIO_OK = true; }, true);
+
+  function beep() {
+    if (!CONFIG.sound || !AUDIO_OK) return;
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      if (!AUDIO_CTX) AUDIO_CTX = new Ctx();
+      var ctx = AUDIO_CTX;
+      function tone(f, t0, dur) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.1, t0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start(t0);
+        o.stop(t0 + dur + 0.03);
+      }
+      var t = ctx.currentTime;
+      tone(660, t, 0.13);
+      tone(880, t + 0.12, 0.16);
+    } catch (e) {}
+  }
+
+  function badgeEl() {
+    var badge = shadow.querySelector('.ubadge');
+    if (!badge) return null;
+    return badge;
+  }
+
+  function notifyIncoming(text) {
+    if (panelEl.classList.contains('open')) return;
+    beep();
+    CHAT.unread = (CHAT.unread || 0) + 1;
+    var badge = badgeEl();
+    if (badge) { badge.style.display = 'flex'; badge.textContent = CHAT.unread > 99 ? '99+' : CHAT.unread; }
+    if (toggleBtn) toggleBtn.classList.add('new');
+    if (teaserEl) {
+      var t = String(text || '').split('\n')[0].slice(0, 120);
+      teaserEl.innerHTML = safeHtml(t) + '<button class="x">✕</button>';
+      teaserEl.style.display = 'block';
+    }
+  }
+
+  function clearUnread() {
+    CHAT.unread = 0;
+    var badge = badgeEl();
+    if (badge) badge.style.display = 'none';
+    if (toggleBtn) toggleBtn.classList.remove('new');
+  }
+
   function pushServerChips(items) {
     var box = chipsEl.querySelector('[data-chips]');
     if (!box || !items || !items.length) return;
@@ -572,9 +730,20 @@
     if (CHAT.seen[m.id]) return;
     CHAT.seen[m.id] = 1;
     addMsg(m.text, 'bot', m.from === 'agent' ? T.operator : T.title);
+    notifyIncoming(m.text);
+  }
+
+  function skipEmail() {
+    CONFIG_MODE = '';
+    inputEl.value = '';
+    inputEl.placeholder = T.input;
+    addMsg(T.emailSkip, 'bot');
+    if (CONFIG.backend && CHAT.id) initBackend();
   }
 
   function submitEmail(v) {
+    v = String(v || '').trim();
+    if (!v && CONFIG.askEmail === 'optional') { skipEmail(); return; }
     if (!EMAIL_RE.test(v)) { addMsg(T.emailBad, 'bot'); return; }
     CHAT.email = v.toLowerCase();
     LS.set('pw_email', CHAT.email);
@@ -588,7 +757,7 @@
   function askForEmail() {
     CONFIG_MODE = 'email';
     addMsg(T.emailAsk, 'bot');
-    inputEl.placeholder = 'you@example.com';
+    inputEl.placeholder = CONFIG.askEmail === 'optional' ? (I18N_EN ? 'you@example.com · Enter — skip' : 'you@example.com · Enter — пропустить') : 'you@example.com';
   }
 
   function backendAsk(q) {
@@ -613,15 +782,17 @@
     aiAnswer(q).then(function (ai) {
       typing(false);
       setTimeout(function () {
-        addMsg((ai || answerText(q).text), 'bot');
+        var t = ai || answerText(q).text;
+        addMsg(t, 'bot');
+        notifyIncoming(t);
       }, 220);
     });
   }
 
   function ask(q) {
     q = String(q || '').trim();
-    if (!q) return;
     if (CONFIG_MODE === 'email') { submitEmail(q); return; }
+    if (!q) return;
     addMsg(q, 'user');
     inputEl.value = '';
     typing(true);
@@ -734,8 +905,11 @@
 
     toggleBtn.addEventListener('click', toggle);
     shadow.querySelector('.close').addEventListener('click', tryClose);
-    shadow.querySelectorAll('.teaser .x').forEach(function (b) { b.addEventListener('click', function (e) { e.stopPropagation(); teaserEl.style.display = 'none'; }); });
-    teaserEl.addEventListener('click', function () { teaserEl.style.display = 'none'; toggle(); });
+    teaserEl.addEventListener('click', function (e) {
+      if (e.target && e.target.classList && e.target.classList.contains('x')) { e.stopPropagation(); teaserEl.style.display = 'none'; return; }
+      teaserEl.style.display = 'none';
+      toggle();
+    });
     sendBtn.addEventListener('click', function () { ask(inputEl.value); });
     inputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') ask(inputEl.value); });
     chipsEl.addEventListener('click', function (e) {
@@ -804,14 +978,17 @@
     if (panelEl.classList.contains('open')) panelEl.classList.remove('open');
     else {
       panelEl.classList.add('open');
+      clearUnread();
       if (CONFIG_MODE === 'pending-email') { CONFIG_MODE = ''; askForEmail(); }
     }
   }
 
-  function boot() {
-    extractStyle();
-    buildKnowledge();
-    indexKnowledge();
+  function paint() {
+    var st = shadow && shadow.querySelector('style');
+    if (st) st.textContent = cssText();
+  }
+
+  function buildUI() {
     host = document.createElement('div');
     host.setAttribute('data-adaptive-widget', '');
     host.style.cssText = 'position:static;z-index:auto;all:initial;';
@@ -828,12 +1005,25 @@
     }
     try {
       window.__ADAPTIVE_DEBUG__ = {
-        palette: { primary: PALETTE.primary, accent: PALETTE.accent, bg: PALETTE.bg, fg: PALETTE.fg, dark: PALETTE.dark, radius: PALETTE.radius, font: PALETTE.font, logo: PALETTE.logo },
+        palette: { primary: PALETTE.primary, accent: PALETTE.accent, bg: PALETTE.bg, fg: PALETTE.fg, dark: PALETTE.dark, radius: PALETTE.radius, font: PALETTE.font, logo: PALETTE.logo, found: PALETTE.found, ai: !!PALETTE._ai },
         knowledge: KNOW.slice(0, 40).map(function (i) { return i.title + ' :: ' + i.content.slice(0, 120); }),
         knowCount: KNOW.length,
+        imagesCount: IMAGE_LIST.length,
         backend: { provider: BACKEND.provider, label: BACKEND.label, endpoint: BACKEND.endpoint, model: BACKEND.model }
       };
     } catch (e) {}
+  }
+
+  function boot() {
+    extractStyle();
+    buildKnowledge();
+    indexKnowledge();
+    if (CONFIG.vision) maybeDescribeImages();
+    if (CONFIG.aiStyle && !PALETTE.found) {
+      aiSuggestStyle();
+      return;
+    }
+    buildUI();
   }
 
   if (document.readyState === 'loading') {

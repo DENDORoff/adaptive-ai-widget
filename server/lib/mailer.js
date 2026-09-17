@@ -10,7 +10,23 @@ const EMAIL_LOG = path.join(DATA_DIR, 'email.log.ndjson');
 let handler = null;
 
 function configure(cfg) {
-  handler = (cfg && cfg.smtp && cfg.smtp.host) ? 'smtp' : 'file';
+  if (cfg && cfg.smtp && cfg.smtp.host) {
+    handler = 'smtp';
+    module.exports.adapter = require('./smtp').send;
+    const s = cfg.smtp;
+    module.exports.smtpConfig = {
+      host: s.host,
+      port: s.port || 465,
+      secure: s.secure !== false,
+      user: s.user || '',
+      pass: s.pass || '',
+      from: s.from || cfg.from || DEFAULT_FROM
+    };
+  } else {
+    handler = 'file';
+    module.exports.adapter = null;
+    module.exports.smtpConfig = null;
+  }
   module.exports.from = (cfg && cfg.smtp && cfg.smtp.from) || (cfg && cfg.from) || DEFAULT_FROM;
 }
 
@@ -37,9 +53,14 @@ async function sendEmail({ to, subject, text }) {
   ensure();
   fs.appendFileSync(EMAIL_LOG, JSON.stringify(rec) + '\n');
 
-  if (handler === 'smtp' && module.exports.adapter) {
+  if (handler === 'smtp' && module.exports.adapter && module.exports.smtpConfig) {
     try {
-      await module.exports.adapter(rec);
+      await module.exports.adapter(Object.assign({}, module.exports.smtpConfig, {
+        to: rec.to,
+        subject: rec.subject,
+        text: rec.text,
+        from: rec.from
+      }));
     } catch (e) {
       console.error('[mail] SMTP-ошибка:', e.message);
     }

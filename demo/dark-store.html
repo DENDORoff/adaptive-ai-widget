@@ -9,38 +9,57 @@
   :root {
     --brand: #f43f5e;
     --accent: #a855f7;
+    --ink: #e2e8f0;
   }
   * { box-sizing: border-box; margin: 0; }
-  body {
-    font-family: Inter, "Segoe UI", Arial, sans-serif;
-    background: #0b0f19; color: #e2e8f0; line-height: 1.6;
-  }
-  header {
-    background: linear-gradient(120deg, #111827, #1e1b4b);
-    color: #fff; padding: 18px 40px;
-    display: flex; align-items: center; justify-content: space-between;
-    border-bottom: 1px solid rgba(168,85,247,.3);
-  }
-  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; letter-spacing: .5px; }
-  .logo img { width: 34px; height: 34px; border-radius: 50%; }
-  nav a { color: #cbd5e1; text-decoration: none; margin-left: 20px; }
+  body { font-family: Inter, "Segoe UI", Arial, sans-serif; background: #0b0f19; color: var(--ink); line-height: 1.6; overflow-x: hidden; }
+  header { background: rgba(11,15,25,.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(168,85,247,.25); position: sticky; top: 0; z-index: 3; }
+  .header-in { max-width: 1080px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 22px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: .5px; }
+  .logo img { width: 36px; height: 36px; border-radius: 50%; }
+  .logo b { background: linear-gradient(90deg,var(--brand),var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  nav { margin-left: auto; display: flex; gap: 18px; align-items: center; }
+  nav a { color: #cbd5e1; text-decoration: none; font-size: 14px; font-weight: 500; }
   nav a:hover { color: var(--brand); }
-  main { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
-  h1 { color: #fff; margin-bottom: 8px; }
-  h2 { margin: 36px 0 12px; color: #fff; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
-  .product {
-    background: #12182a; border-radius: 14px; padding: 18px;
-    border: 1px solid rgba(255,255,255,.06);
-  }
-  .product img { width: 100%; border-radius: 10px; margin-bottom: 10px; }
-  .product .name { font-weight: 600; color: #fff; }
-  .product .price { color: var(--brand); font-weight: 700; margin-top: 6px; }
-  .faq-item { background: #12182a; border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,.06); }
-  .faq-item h3 { color: var(--accent); margin-bottom: 6px; }
-  .btn { display: inline-block; margin-top: 12px; background: linear-gradient(120deg, var(--brand), var(--accent)); color: #fff; padding: 12px 22px; border-radius: 10px; text-decoration: none; font-weight: 600; }
-  .btn:hover { filter: brightness(1.15); }
-  footer { text-align: center; padding: 30px; color: #475569; }
+  .btn-line { border: 1px solid rgba(168,85,247,.4); background: transparent; padding: 9px 18px; border-radius: 10px; font-weight: 600; font-size: 13.5px; color: #fff; text-decoration: none; }
+  .btn-line:hover { border-color: var(--brand); color: var(--brand); }
+  .hero { position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(600px 300px at 70% 0%, rgba(168,85,247,.18), transparent 60%), radial-gradient(500px 300px at 10% 100%, rgba(244,63,94,.14), transparent 60%); }
+  .hero-in { position: relative; max-width: 1080px; margin: 0 auto; padding: 80px 24px 64px; text-align: center; }
+  .hero .tag { display: inline-block; font-size: 12px; letter-spacing: 1.5px; color: var(--accent); border: 1px solid rgba(168,85,247,.4); padding: 5px 14px; border-radius: 100px; margin-bottom: 18px; text-transform: uppercase; }
+  .hero h1 { font-size: 46px; line-height: 1.1; letter-spacing: -1px; margin-bottom: 16px; color: #fff; }
+  .hero h1 em { font-style: normal; background: linear-gradient(90deg,var(--brand),var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { color: #94a3b8; font-size: 17px; max-width: 560px; margin: 0 auto 28px; }
+  .stats-row { display: flex; gap: 30px; justify-content: center; margin-top: 34px; flex-wrap: wrap; }
+  .stats-row .s { text-align: center; }
+  .stats-row .s b { display: block; font-size: 24px; color: #fff; }
+  .stats-row .s span { font-size: 12px; color: #64748b; }
+  main { max-width: 1080px; margin: 0 auto; padding: 20px 24px 50px; }
+  .sec-head { display: flex; align-items: baseline; gap: 16px; margin: 46px 0 18px; }
+  .sec-head h2 { margin: 0; font-size: 26px; letter-spacing: -.4px; color: #fff; }
+  .sec-head span { color: #64748b; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
+  .product { background: #12182a; border-radius: 16px; padding: 16px; border: 1px solid rgba(255,255,255,.07); transition: .18s; display: flex; flex-direction: column; }
+  .product:hover { border-color: var(--brand); transform: translateY(-3px); box-shadow: 0 12px 30px rgba(244,63,94,.12); }
+  .product .ph { position: relative; }
+  .product .ph img { width: 100%; border-radius: 12px; margin-bottom: 12px; }
+  .product .badge { position: absolute; top: 10px; left: 10px; background: var(--brand); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 100px; }
+  .product .name { font-weight: 700; font-size: 15px; color: #fff; }
+  .product .desc { color: #94a3b8; font-size: 12.5px; margin-top: 4px; flex: 1; }
+  .product .price { color: var(--brand); font-weight: 800; font-size: 17px; margin-top: 10px; }
+  .product .buy { margin-top: 12px; background: linear-gradient(120deg, var(--brand), var(--accent)); color: #fff; border: none; border-radius: 10px; padding: 9px 0; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .product.big { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 22px; padding: 20px; }
+  .product.big .ph { flex: 0 0 220px; }
+  .product.big .ph img { margin: 0; }
+  .faq-item { background: #12182a; border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 16px 20px; margin-bottom: 12px; }
+  .faq-item h3 { color: var(--accent); font-size: 15px; margin-bottom: 6px; }
+  .faq-item p { color: #94a3b8; font-size: 14px; }
+  section { margin-top: 46px; }
+  section h2 { font-size: 26px; color: #fff; letter-spacing: -.4px; margin-bottom: 16px; }
+  footer { border-top: 1px solid rgba(255,255,255,.07); margin-top: 40px; }
+  .foot { max-width: 1080px; margin: 0 auto; padding: 26px 24px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center; }
+  .foot .copy { color: #64748b; font-size: 13px; }
+  .foot a { color: var(--accent); text-decoration: none; margin-left: 14px; font-size: 13px; }
 </style>
 <script type="application/ld+json">
 {
@@ -73,39 +92,83 @@
 </head>
 <body>
 <header>
-  <div class="logo">
-    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%2321357a'/%3E%3Ctext x='32' y='43' font-size='28' text-anchor='middle' fill='white'%3E★%3C/text%3E%3C/svg%3E" alt="Nebula logo">
-    Nebula Commerce
+  <div class="header-in">
+    <div class="logo">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%2321357a'/%3E%3Ctext x='32' y='43' font-size='28' text-anchor='middle' fill='white'%3E★%3C/text%3E%3C/svg%3E" alt="Nebula logo">
+      <b>Nebula Commerce</b>
+    </div>
+    <nav>
+      <a href="#keys">Ключи</a>
+      <a href="#subscriptions">Подписки</a>
+      <a href="#faq">Вопросы</a>
+      <a href="#help">Поддержка</a>
+    </nav>
   </div>
-  <nav>
-    <a href="#keys">Ключи</a>
-    <a href="#subscriptions">Подписки</a>
-    <a href="#faq">Вопросы</a>
-    <a href="#help">Поддержка</a>
-  </nav>
 </header>
-<main>
-  <h1>Игровая платформа Nebula Commerce</h1>
-  <p>Официальные игровые ключи и подписки со мгновенной доставкой. Наш ИИ-агент проведёт вас по сайту и ответит на любые вопросы.</p>
 
-  <h2 id="keys">Популярные ключи</h2>
+<div class="hero">
+  <div class="hero-in">
+    <div class="tag">мгновенная доставка ключей</div>
+    <h1>Играйте <em>сразу после оплаты</em></h1>
+    <p>Официальные игровые ключи и подписки. Ключ приходит за секунды, поддержка отвечает круглосуточно, а ИИ-агент на странице объяснит, как активировать игру и что делать, если что-то пошло не так.</p>
+    <a class="btn-line" href="#keys" style="padding:14px 26px;font-size:15px;border:none;background:linear-gradient(120deg,var(--brand),var(--accent))">Выбрать ключи</a>
+    <div class="stats-row">
+      <div class="s"><b>1,2 млн</b><span>ключей выдано</span></div>
+      <div class="s"><b>30 сек</b><span>среднее время выдачи</span></div>
+      <div class="s"><b>24/7</b><span>поддержка</span></div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="sec-head">
+    <h2 id="keys">Популярные ключи</h2>
+    <span>активация в РФ и всех регионах</span>
+  </div>
   <div class="grid">
     <div class="product" data-product data-name="CyberRunner 2077" data-price="2490 ₽" data-desc="Ключ для Steam, активация в РФ.">
-      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%23131040'/%3E%3Ctext x='130' y='80' font-size='16' text-anchor='middle' fill='%23a855f7'%3ECyberRunner%3C/text%3E%3C/svg%3E" alt="CyberRunner 2077">
+      <div class="ph"><span class="badge">Хит</span>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='n1' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%233128d6'/%3E%3Cstop offset='1' stop-color='%23d946ef'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23n1)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E🕹️%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3ECyberRunner 2077%3C/text%3E%3C/svg%3E" alt="CyberRunner 2077">
+      </div>
       <div class="name">CyberRunner 2077</div>
-      <div class="price">2490 ₽</div>
+      <div class="desc">Ключ для Steam, активация в РФ.</div>
+      <div class="price">2 490 ₽</div>
+      <button class="buy">Купить ключ</button>
     </div>
     <div class="product" data-product data-name="Kingdom of Ash IV" data-price="1790 ₽" data-desc="Глобальный ключ для всех регионов.">
-      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%231b1b4b'/%3E%3Ctext x='130' y='80' font-size='16' text-anchor='middle' fill='%23f43f5e'%3EKingdom%3C/text%3E%3C/svg%3E" alt="Kingdom of Ash IV">
+      <div class="ph">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='n2' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23f43f5e'/%3E%3Cstop offset='1' stop-color='%23fb923c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23n2)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E⚔️%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3EKingdom of Ash IV%3C/text%3E%3C/svg%3E" alt="Kingdom of Ash IV">
+      </div>
       <div class="name">Kingdom of Ash IV</div>
-      <div class="price">1790 ₽</div>
+      <div class="desc">Глобальный ключ для всех регионов.</div>
+      <div class="price">1 790 ₽</div>
+      <button class="buy">Купить ключ</button>
+    </div>
+    <div class="product" data-product data-name="StarRacer Turbo" data-price="2990 ₽" data-desc="Ключ в Steam, включает сезонный пропуск.">
+      <div class="ph"><span class="badge">Новинка</span>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='n3' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322d3ee'/%3E%3Cstop offset='1' stop-color='%233b82f6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23n3)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E🚗%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3EStarRacer%3C/text%3E%3C/svg%3E" alt="StarRacer Turbo">
+      </div>
+      <div class="name">StarRacer Turbo</div>
+      <div class="desc">Ключ в Steam, включает сезонный пропуск.</div>
+      <div class="price">2 990 ₽</div>
+      <button class="buy">Купить ключ</button>
     </div>
   </div>
 
-  <h2 id="subscriptions">Подписки</h2>
-  <div class="product" data-product data-name="Game Pass Ultimate 1 месяц" data-price="990 ₽" data-desc="Пополнение в течение 5 минут, подходит для РФ.">
-    <div class="name">Game Pass Ultimate 1 месяц</div>
-    <div class="price">990 ₽</div>
+  <div class="sec-head">
+    <h2 id="subscriptions">Подписки</h2>
+    <span>активируются в течение 5 минут</span>
+  </div>
+  <div class="grid">
+    <div class="product big" data-product data-name="Game Pass Ultimate 1 месяц" data-price="990 ₽" data-desc="Пополнение в течение 5 минут, подходит для РФ.">
+      <div class="ph"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='150'%3E%3Cdefs%3E%3ClinearGradient id='n4' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23f43f5e'/%3E%3Cstop offset='1' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='320' height='150' rx='14' fill='url(%23n4)'/%3E%3Ctext x='160' y='84' font-size='42' text-anchor='middle'%3E🎮%3C/text%3E%3Ctext x='160' y='126' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3EGame Pass Ultimate%3C/text%3E%3C/svg%3E" alt="Game Pass Ultimate 1 месяц"></div>
+      <div style="flex:1">
+        <div class="name" style="font-size:17px">Game Pass Ultimate 1 месяц</div>
+        <div class="desc">Свыше 400 игр в каталоге, играйте на консоли, ПК и в облаке. Доставка в течение 5 минут, подходит для РФ.</div>
+        <div class="price">990 ₽</div>
+        <button class="buy">Купить подписку</button>
+      </div>
+    </div>
   </div>
 
   <h2 id="faq">Частые вопросы</h2>
@@ -117,14 +180,31 @@
     <h3>Даёте ли вы чеки?</h3>
     <p>Да, после покупки чек приходит на указанную почту автоматически.</p>
   </div>
+  <div class="faq-item" data-faq>
+    <h3>Можно ли вернуть ключ, если он не подошёл?</h3>
+    <p>Если ключ не активировался по нашей вине — заменим в течение 30 минут или вернём деньги в течение 48 часов.</p>
+  </div>
 
-  <h2 id="help">Поддержка</h2>
-  <p>Чат: <a href="https://t.me/nebula_support">t.me/nebula_support</a> · Email: <a href="mailto:help@nebula-games.ru">help@nebula-games.ru</a> · Телефон: <a href="tel:+74951203040">+7 495 120 30 40</a><br>
-  Режим работы: 24/7</p>
+  <section>
+    <h2 id="help">Поддержка</h2>
+    <div class="faq-item" style="padding:20px">
+      <p>Чат: <a href="https://t.me/nebula_support" style="color:var(--accent)">t.me/nebula_support</a> · Email: <a href="mailto:help@nebula-games.ru" style="color:var(--accent)">help@nebula-games.ru</a> · Телефон: <a href="tel:+74951203040" style="color:var(--accent)">+7 495 120 30 40</a><br>
+      Режим работы: 24/7 · Среднее время ответа: 2 минуты</p>
+    </div>
+  </section>
 </main>
-<footer>© 2026 Nebula Commerce</footer>
+<footer>
+  <div class="foot">
+    <div class="copy">© 2026 Nebula Commerce · Ключи и подписки с ИИ-поддержкой</div>
+    <div>
+      <a href="mailto:help@nebula-games.ru">help@nebula-games.ru</a>
+      <a href="https://t.me/nebula_support">Telegram</a>
+    </div>
+  </div>
+</footer>
 <script>
 window.ADAPTIVE_WIDGET = {
+  siteName: 'Nebula Commerce',
   aiEnabled: true,
   model: 'qwen2.5:3b'
 };

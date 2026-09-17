@@ -4,42 +4,79 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GadgetHub — магазин электроники</title>
-<meta name="description" content="GadgetHub — интернет-магазин электроники: наушники, клавиатуры, смарт-часы. Быстрая доставка по всей России, возврат в течение 14 дней.">
+<meta name="description" content="GadgetHub — интернет-магазин электроники: наушники, клавиатуры, смарт-часы. Быстрая доставка по всей России, возврат в течение 14 дней, гарантия 12 месяцев.">
 <style>
   :root {
     --brand: #0284c7;
     --accent: #7c3aed;
+    --ink: #0f172a;
+    --soft: #64748b;
+    --line: #e2e8f0;
   }
   * { box-sizing: border-box; margin: 0; }
-  body {
-    font-family: "Segoe UI", Roboto, Arial, sans-serif;
-    background: #f8fafc; color: #0f172a; line-height: 1.6;
-  }
-  header {
-    background: linear-gradient(120deg, var(--brand), var(--accent));
-    color: #fff; padding: 18px 40px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; }
-  .logo img { width: 34px; height: 34px; border-radius: 8px; }
-  nav a { color: #fff; text-decoration: none; margin-left: 20px; }
-  nav a:hover { text-decoration: underline; }
-  main { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
-  h1 { margin-bottom: 8px; }
-  h2 { margin: 36px 0 12px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
-  .product {
-    background: #fff; border-radius: 14px; padding: 18px;
-    box-shadow: 0 2px 10px rgba(0,0,0,.06);
-  }
-  .product img { width: 100%; border-radius: 10px; margin-bottom: 10px; }
-  .product .name { font-weight: 600; }
-  .product .price { color: var(--brand); font-weight: 700; margin-top: 6px; }
-  .faq-item { background: #fff; border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
-  .faq-item h3 { color: var(--accent); margin-bottom: 6px; }
-  .btn { display: inline-block; margin-top: 12px; background: var(--brand); color: #fff; padding: 12px 22px; border-radius: 10px; text-decoration: none; font-weight: 600; }
-  .btn:hover { filter: brightness(1.1); }
-  footer { text-align: center; padding: 30px; color: #64748b; }
+  body { font-family: "Segoe UI", Roboto, Arial, sans-serif; background: #f8fafc; color: var(--ink); line-height: 1.6; }
+  header { background: rgba(255,255,255,.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 3; }
+  .header-in { max-width: 1080px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 22px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: -.3px; }
+  .logo img { width: 36px; height: 36px; border-radius: 10px; }
+  .logo b { background: linear-gradient(90deg,var(--brand),var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  nav { margin-left: auto; display: flex; gap: 18px; align-items: center; }
+  nav a { color: var(--ink); text-decoration: none; font-size: 14px; font-weight: 500; }
+  nav a:hover { color: var(--brand); }
+  .btn-line { border: 1px solid var(--line); background: #fff; padding: 9px 18px; border-radius: 10px; font-weight: 600; font-size: 13.5px; color: var(--ink); text-decoration: none; }
+  .btn-line:hover { border-color: var(--brand); color: var(--brand); }
+  .hero { position: relative; overflow: hidden; }
+  .hero .bg { position: absolute; inset: 0; background: linear-gradient(120deg, rgba(2,132,199,.10), rgba(124,58,237,.12)); }
+  .hero .blob1, .hero .blob2 { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .5; }
+  .hero .blob1 { width: 340px; height: 340px; background: #38bdf8; top: -60px; right: 8%; }
+  .hero .blob2 { width: 300px; height: 300px; background: #a78bfa; bottom: -90px; left: -40px; }
+  .hero-in { position: relative; max-width: 1080px; margin: 0 auto; padding: 70px 24px 60px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; }
+  .hero h1 { font-size: 44px; line-height: 1.12; letter-spacing: -1px; margin-bottom: 16px; }
+  .hero h1 em { font-style: normal; background: linear-gradient(90deg,var(--brand),var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { color: var(--soft); font-size: 17px; max-width: 480px; margin-bottom: 26px; }
+  .hero .cta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-block; background: linear-gradient(120deg, var(--brand), var(--accent)); color: #fff; padding: 14px 26px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 15px; box-shadow: 0 10px 26px rgba(2,132,199,.32); }
+  .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .hero-img { text-align: center; }
+  .hero-img svg { width: 100%; max-width: 460px; height: auto; filter: drop-shadow(0 22px 30px rgba(15,23,42,.15)); }
+  .trust { max-width: 1080px; margin: 0 auto; padding: 22px 24px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .trust .t { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: flex; gap: 12px; align-items: center; }
+  .trust .t .ic { font-size: 22px; }
+  .trust .t b { display: block; font-size: 14px; }
+  .trust .t span { font-size: 12px; color: var(--soft); }
+  main { max-width: 1080px; margin: 0 auto; padding: 30px 24px 50px; }
+  .cat-head { display: flex; align-items: baseline; gap: 16px; margin: 40px 0 18px; }
+  .cat-head h2 { margin: 0; font-size: 26px; letter-spacing: -.4px; }
+  .cat-head span { color: var(--soft); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
+  .product { background: #fff; border-radius: 16px; padding: 16px; border: 1px solid var(--line); transition: .18s; display: flex; flex-direction: column; }
+  .product:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(2,132,199,.10); border-color: #bae6fd; }
+  .product .ph { position: relative; }
+  .product .ph img { width: 100%; border-radius: 12px; margin-bottom: 12px; }
+  .product .badge { position: absolute; top: 10px; left: 10px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 100px; }
+  .product .badge.hot { background: var(--brand); }
+  .product .name { font-weight: 700; font-size: 15px; }
+  .product .desc { color: var(--soft); font-size: 12.5px; margin-top: 4px; flex: 1; }
+  .product .price { color: var(--brand); font-weight: 800; font-size: 17px; margin-top: 10px; }
+  .product .price small { color: var(--soft); font-weight: 500; font-size: 11.5px; }
+  .product .buy { margin-top: 12px; background: var(--brand); color: #fff; border: none; border-radius: 10px; padding: 9px 0; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .product .buy:hover { filter: brightness(1.1); }
+  section { margin-top: 48px; }
+  section h2 { font-size: 26px; letter-spacing: -.4px; margin-bottom: 16px; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+  .card h3 { font-size: 16px; margin-bottom: 8px; display: flex; gap: 10px; align-items: center; }
+  .card p { color: var(--soft); font-size: 14px; }
+  .faq-item { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; margin-bottom: 12px; }
+  .faq-item h3 { color: var(--accent); font-size: 15px; margin-bottom: 6px; }
+  .faq-item p { color: var(--soft); font-size: 14px; }
+  .qmark { color: var(--brand); }
+  blockquote { background: #fff; border-left: 4px solid var(--brand); border-radius: 0 14px 14px 0; padding: 18px 22px; margin-top: 26px; color: var(--ink); font-size: 15px; }
+  blockquote .who { display: block; margin-top: 8px; color: var(--soft); font-size: 13px; }
+  footer { border-top: 1px solid var(--line); background: #fff; margin-top: 40px; }
+  .foot { max-width: 1080px; margin: 0 auto; padding: 26px 24px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center; }
+  .foot .copy { color: var(--soft); font-size: 13px; }
+  .foot a { color: var(--brand); text-decoration: none; margin-left: 14px; font-size: 13px; }
 </style>
 <script type="application/ld+json">
 {
@@ -79,65 +116,207 @@
 </head>
 <body>
 <header>
-  <div class="logo">
-    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230284c7'/%3E%3Ctext x='32' y='42' font-size='30' text-anchor='middle' fill='white'%3E⚡%3C/text%3E%3C/svg%3E" alt="GadgetHub logo">
-    GadgetHub
+  <div class="header-in">
+    <div class="logo">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230284c7'/%3E%3Ctext x='32' y='42' font-size='30' text-anchor='middle' fill='white'%3E⚡%3C/text%3E%3C/svg%3E" alt="GadgetHub logo">
+      <b>GadgetHub</b>
+    </div>
+    <nav>
+      <a href="#catalog">Каталог</a>
+      <a href="#delivery">Доставка</a>
+      <a href="#returns">Возврат</a>
+      <a href="#faq">Вопросы</a>
+      <a href="#contacts">Контакты</a>
+      <a class="btn-line" href="#contacts">Корзина</a>
+    </nav>
   </div>
-  <nav>
-    <a href="#catalog">Каталог</a>
-    <a href="#delivery">Доставка</a>
-    <a href="#returns">Возврат</a>
-    <a href="#faq">Вопросы</a>
-    <a href="#contacts">Контакты</a>
-  </nav>
 </header>
-<main>
-  <h1>Магазин электроники GadgetHub</h1>
-  <p>Оригинальная техника с гарантией и быстрой доставкой. Проконсультируйтесь с нашим ИИ-агентом прямо на странице.</p>
-  <a class="btn" href="#catalog">Смотреть каталог</a>
 
-  <h2 id="catalog">Каталог</h2>
+<div class="hero">
+  <div class="bg"></div>
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <div class="hero-in">
+    <div>
+      <h1>Техника, которая <em>подходит именно вам</em></h1>
+      <p>Наушники, клавиатуры и умные часы с гарантией 12 месяцев. Спросите нашего ИИ-агента на странице — он ответит по реальным данным сайта о ценах, доставке и возврате.</p>
+      <div class="cta">
+        <a class="btn" href="#catalog">Смотреть каталог</a>
+        <a class="btn-line" href="#faq" style="padding:14px 22px;font-size:15px">Частые вопросы</a>
+      </div>
+    </div>
+    <div class="hero-img">
+      <svg viewBox="0 0 460 300" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="hg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#7c3aed"/></linearGradient>
+        </defs>
+        <rect width="460" height="300" rx="28" fill="url(#hg1)" opacity=".15"/>
+        <circle cx="90" cy="90" r="46" fill="#fff" opacity=".9"/>
+        <path d="M78 92 l8 8 18-20" stroke="#0284c7" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="180" y="60" width="190" height="120" rx="16" fill="#fff" opacity=".95"/>
+        <rect x="196" y="80" width="120" height="12" rx="6" fill="#bfdbfe"/>
+        <rect x="196" y="104" width="158" height="12" rx="6" fill="#e2e8f0"/>
+        <rect x="196" y="128" width="120" height="12" rx="6" fill="#e2e8f0"/>
+        <circle cx="338" cy="128" r="26" fill="#7c3aed"/>
+        <path d="M328 132 l6 6 14-16" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="120" cy="210" r="36" fill="#fff" opacity=".9"/>
+        <path d="M112 214 l6 6 12-13" stroke="#7c3aed" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="336" cy="212" r="34" fill="#fff" opacity=".9"/>
+        <text x="336" y="223" font-size="28" text-anchor="middle">🎧</text>
+        <rect x="210" y="205" width="120" height="70" rx="14" fill="#fff" opacity=".92"/>
+        <rect x="224" y="220" width="92" height="10" rx="5" fill="#e2e8f0"/>
+        <rect x="224" y="242" width="60" height="10" rx="5" fill="#bfdbfe"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div class="trust">
+  <div class="t"><div class="ic">🚚</div><div><b>Доставка за 1 день</b><span>по Москве, бесплатно от 3000 ₽</span></div></div>
+  <div class="t"><div class="ic">🛡️</div><div><b>Гарантия 12 мес</b><span>на всю технику</span></div></div>
+  <div class="t"><div class="ic">↩️</div><div><b>Возврат 14 дней</b><span>без лишних вопросов</span></div></div>
+  <div class="t"><div class="ic">💬</div><div><b>Поддержка 24/7</b><span>живые операторы и ИИ-агент</span></div></div>
+</div>
+
+<main>
+  <div class="cat-head">
+    <h2 id="catalog">Хиты каталога</h2>
+    <span>добавляются новые модели каждый месяц</span>
+  </div>
   <div class="grid">
+    <div class="product" data-product data-name="Наушники Aurora X" data-price="7990 ₽" data-desc="Беспроводные наушники с шумоподавлением и 30 часами работы.">
+      <div class="ph"><span class="badge hot">Хит</span>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='p1' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2338bdf8'/%3E%3Cstop offset='1' stop-color='%23818cf8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23p1)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E🎧%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3EAurora X%3C/text%3E%3C/svg%3E" alt="Наушники Aurora X">
+      </div>
+      <div class="name">Наушники Aurora X</div>
+      <div class="desc">Шумоподавление, 30 ч работы, Bluetooth 5.3.</div>
+      <div class="price">7 990 ₽ <small>в рассрочку от 1998 ₽</small></div>
+      <button class="buy">В корзину</button>
+    </div>
     <div class="product" data-product data-name="Клавиатура MechPro 87" data-price="5490 ₽" data-desc="Механическая клавиатура с подсветкой и свитчами red.">
-      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%23e0f2fe'/%3E%3Ctext x='130' y='80' font-size='18' text-anchor='middle' fill='%230284c7'%3EKlaviatura%3C/text%3E%3C/svg%3E" alt="Клавиатура MechPro 87">
+      <div class="ph"><span class="badge">Новинка</span>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='p2' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23a78bfa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23p2)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E⌨️%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3EMechPro 87%3C/text%3E%3C/svg%3E" alt="Клавиатура MechPro 87">
+      </div>
       <div class="name">Клавиатура MechPro 87</div>
-      <div class="price">5490 ₽</div>
+      <div class="desc">Красные свитчи, RGB-подсветка, алюминиевый корпус.</div>
+      <div class="price">5 490 ₽</div>
+      <button class="buy">В корзину</button>
     </div>
     <div class="product" data-product data-name="Смарт-часы Pulse S2" data-price="12990 ₽" data-desc="Спортивные часы с GPS и 10 днями автономности.">
-      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%23f3e8ff'/%3E%3Ctext x='130' y='80' font-size='18' text-anchor='middle' fill='%237c3aed'%3EChasy%3C/text%3E%3C/svg%3E" alt="Смарт-часы Pulse S2">
+      <div class="ph"><span class="badge hot">Хит</span>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='p3' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23c084fc'/%3E%3Cstop offset='1' stop-color='%238b5cf6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23p3)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E⌚%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3EPulse S2%3C/text%3E%3C/svg%3E" alt="Смарт-часы Pulse S2">
+      </div>
       <div class="name">Смарт-часы Pulse S2</div>
-      <div class="price">12990 ₽</div>
+      <div class="desc">GPS, пульс, 100 спортивных режимов, 10 дней без подзарядки.</div>
+      <div class="price">12 990 ₽</div>
+      <button class="buy">В корзину</button>
     </div>
-    <div class="product" data-product data-name="Наушники Aurora X" data-price="7990 ₽" data-desc="Беспроводные наушники с шумоподавлением.">
-      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%23dbeafe'/%3E%3Ctext x='130' y='80' font-size='18' text-anchor='middle' fill='%230284c7'%3ENaushniki%3C/text%3E%3C/svg%3E" alt="Наушники Aurora X">
-      <div class="name">Наушники Aurora X</div>
-      <div class="price">7990 ₽</div>
+    <div class="product" data-product data-name="Колонка BassBox Mini" data-price="3490 ₽" data-desc="Портативная колонка с запасом баса и IPX7.">
+      <div class="ph">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='p4' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%230ea5e9'/%3E%3Cstop offset='1' stop-color='%232dd4bf'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23p4)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E🔉%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3EBassBox Mini%3C/text%3E%3C/svg%3E" alt="Колонка BassBox Mini">
+      </div>
+      <div class="name">Колонка BassBox Mini</div>
+      <div class="desc">Мощный звук, защита от воды, 20 ч музыки.</div>
+      <div class="price">3 490 ₽</div>
+      <button class="buy">В корзину</button>
+    </div>
+    <div class="product" data-product data-name="Роутер RangeX6" data-price="7990 ₽" data-desc="Wi-Fi 6 для больших квартир, до 60 устройств.">
+      <div class="ph">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='p5' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237c3aed'/%3E%3Cstop offset='1' stop-color='%23d946ef'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23p5)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E📡%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3ERangeX6%3C/text%3E%3C/svg%3E" alt="Роутер RangeX6">
+      </div>
+      <div class="name">Роутер RangeX6</div>
+      <div class="desc">Покрытие до 170 м², приложение и родительский контроль.</div>
+      <div class="price">7 990 ₽</div>
+      <button class="buy">В корзину</button>
+    </div>
+    <div class="product" data-product data-name="Зарядка Turbo 65W" data-price="2490 ₽" data-desc="Компактная зарядка GaN для ноутбуков и телефонов.">
+      <div class="ph"><span class="badge" style="background:#10b981">−20%</span>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='p6' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23f43f5e'/%3E%3Cstop offset='1' stop-color='%23fb923c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23p6)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E🔋%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3ETurbo 65W%3C/text%3E%3C/svg%3E" alt="Зарядка Turbo 65W">
+      </div>
+      <div class="name">Зарядка Turbo 65W</div>
+      <div class="desc">GaN-технология, USB-C, заряжает ноутбук и телефон.</div>
+      <div class="price">2 490 ₽ <small style="text-decoration:line-through;margin-left:4px">3 100 ₽</small></div>
+      <button class="buy">В корзину</button>
     </div>
   </div>
 
-  <h2 id="delivery">Доставка</h2>
-  <p>Курьером по Москве — на следующий день, бесплатно при заказе от 3000 ₽. По России отправляем СДЭК и Почтой России: сроки 2–7 рабочих дней. Трек-номер приходит в SMS и на почту.</p>
+  <section>
+    <h2 id="delivery">Доставка</h2>
+    <div class="duo">
+      <div class="card">
+        <h3>🚚 По Москве</h3>
+        <p>Курьером на следующий день. Бесплатно при заказе от 3000 ₽, иначе — 290 ₽. Доставка в пункты выдачи — бесплатно в любой день.</p>
+      </div>
+      <div class="card">
+        <h3>🗺️ По России</h3>
+        <p>СДЭК и Почта России: 2–7 рабочих дней. Трек-номер приходит в SMS и на почту. Отправка в день заказа при оплате до 16:00.</p>
+      </div>
+    </div>
+  </section>
 
-  <h2 id="returns">Возврат</h2>
-  <p>Товар можно вернуть в течение 14 дней с момента получения. Условия: сохранены товарный вид и упаковка. Оформление — на support@gadgethub.ru, возврат денег занимает до 5 рабочих дней.</p>
+  <section>
+    <h2 id="returns">Возврат и гарантия</h2>
+    <div class="duo">
+      <div class="card">
+        <h3>↩️ Оформление возврата</h3>
+        <p>Товар можно вернуть в течение 14 дней с момента получения, если сохранены товарный вид и упаковка. Напишите на support@gadgethub.ru — пришлём накладную. Деньги вернём до 5 рабочих дней.</p>
+      </div>
+      <div class="card">
+        <h3>🛡️ Гарантия и сервис</h3>
+        <p>12 месяцев гарантии на всю технику. Обслуживание в сервисных центрах по всей России, замена неисправного товара — в течение 14 дней.</p>
+      </div>
+    </div>
+  </section>
 
-  <h2 id="faq">Частые вопросы</h2>
-  <div class="faq-item" data-faq>
-    <h3>Даёте ли гарантию?</h3>
-    <p>Да, на всю технику 12 месяцев гарантии. Обслуживание — в сервисных центрах по всей России.</p>
-  </div>
-  <div class="faq-item" data-faq>
-    <h3>Можно ли оплатить частями?</h3>
-    <p>Да, доступна рассрочка до 4 месяцев без переплаты при оплате от 5000 ₽.</p>
-  </div>
+  <section>
+    <h2 id="faq">Частые вопросы</h2>
+    <div class="faq-item" data-faq>
+      <h3>Даёте ли гарантию?</h3>
+      <p>Да, на всю технику 12 месяцев гарантии. Обслуживание — в сервисных центрах по всей России.</p>
+    </div>
+    <div class="faq-item" data-faq>
+      <h3>Можно ли оплатить частями?</h3>
+      <p>Да, доступна рассрочка до 4 месяцев без переплаты при оплате от 5000 ₽.</p>
+    </div>
+    <div class="faq-item" data-faq>
+      <h3>Как отследить мой заказ?</h3>
+      <p>Трек-номер приходит автоматически в SMS и на email после отправки. Уточнить статус можно у оператора в чате.</p>
+    </div>
+  </section>
 
-  <h2 id="contacts">Контакты</h2>
-  <p>Телефон: <a href="tel:+78001002030">8 800 100 20 30</a> · Email: <a href="mailto:support@gadgethub.ru">support@gadgethub.ru</a><br>
-  Адрес: Москва, ул. Тверская, 12</p>
+  <blockquote>
+    «Задал вопрос ИИ-агенту про возврат — получил точный ответ за секунду и сразу ушёл в чат с оператором.
+    Очень удобно, когда сайт сам знает свои правила.»
+    <span class="who">— Анна, покупатель GadgetHub</span>
+  </blockquote>
+
+  <section id="contacts" style="margin-top:20px">
+    <h2>Контакты</h2>
+    <div class="duo">
+      <div class="card">
+        <h3><span class="qmark">✉️</span> Свяжитесь с нами</h3>
+        <p>Телефон: <a href="tel:+78001002030">8 800 100 20 30</a> · Email: <a href="mailto:support@gadgethub.ru">support@gadgethub.ru</a></p>
+      </div>
+      <div class="card">
+        <h3><span class="qmark">📍</span> Адрес магазина</h3>
+        <p>Москва, ул. Тверская, 12 · Ежедневно с 9:00 до 21:00<br>г. Москва, ш. Энтузиастов, 5 · Пн–Пт 10:00–20:00</p>
+      </div>
+    </div>
+  </section>
 </main>
-<footer>© 2026 GadgetHub</footer>
+
+<footer>
+  <div class="foot">
+    <div class="copy">© 2026 GadgetHub · Магазин электроники с ИИ-поддержкой</div>
+    <div>
+      <a href="mailto:support@gadgethub.ru">support@gadgethub.ru</a>
+      <a href="tel:+78001002030">8 800 100 20 30</a>
+    </div>
+  </div>
+</footer>
 <script>
 window.ADAPTIVE_WIDGET = {
+  siteName: 'GadgetHub',
   aiEnabled: true,
   model: 'qwen2.5:3b'
 };

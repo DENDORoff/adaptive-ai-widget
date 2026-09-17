@@ -241,6 +241,47 @@ async function main() {
   const logLines = fs.readFileSync(logFile, 'utf8').split('\n').filter(Boolean);
   check('все чаты логируются (NDJSON)', logLines.length >= 6, 'lines=' + logLines.length);
 
+  console.log('\n== Server: нерешённые запросы содержат chatId ==');
+  const statsU = await fetch(base + '/api/stats').then((r) => r.json());
+  check('unresolvedQueries содержит chatId', statsU.unresolvedQueries.some((u) => u.chatId === 'chat1' && u.q === 'Гиппопотам в океане HARDFAIL'), JSON.stringify(statsU.unresolvedQueries[0]));
+
+  console.log('\n== Server: TTL-очистка тикетов ==');
+  await fetch(base + '/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticketTtlDays: 0 }) }).then((r) => r.json());
+  await post(base + '/api/init', { chatId: 'chat3', email: 'three@example.com', siteName: 'Old', knowledge: KNOWLEDGE });
+  store.mutate((s) => {
+    const c = s.chats.chat3;
+    c.updatedAt = new Date(Date.now() - 100 * 86400000).toISOString();
+    return s;
+  });
+  const cfgTtl = await fetch(base + '/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticketTtlDays: 2 }) }).then((r) => r.json());
+  check('PUT /api/config принял ticketTtlDays', cfgTtl.ticketTtlDays === 2, cfgTtl.ticketTtlDays);
+  const removed = srv.pruneTickets();
+  check('старый тикет удалён TTL-очисткой', removed === 1 && store.getChat('chat3') === null, 'removed=' + removed);
+  check('свежие тикеты не тронуты', store.getChat('chat1') !== null && store.getChat('chat2') !== null);
+  await fetch(base + '/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticketTtlDays: 14 }) }).then((r) => r.json());
+
+  console.log('\n== Server: хранилище инструкций (KB) ==');
+  const kbList = await fetch(base + '/api/instructions').then((r) => r.json());
+  check('инструкция из чата попала в KB', Array.isArray(kbList.items) && kbList.items.some((i) => i.title === 'chat:chat1' && i.text.indexOf('10%') !== -1), JSON.stringify(kbList.items).slice(0, 160));
+  const kbAdd = await fetch(base + '/api/instructions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Правило вежливости', text: 'Отвечать кратко и по делу' }) }).then((r) => r.json());
+  check('POST /api/instructions добавил инструкцию', kbAdd.ok === true && !!kbAdd.item.id, JSON.stringify(kbAdd));
+  const kbList2 = await fetch(base + '/api/instructions').then((r) => r.json());
+  check('инструкция появилась в списке', kbList2.items.some((i) => i.title === 'Правило вежливости'));
+  const kbDel = await fetch(base + '/api/instructions?id=' + encodeURIComponent(kbAdd.item.id), { method: 'DELETE' }).then((r) => r.json());
+  check('DELETE /api/instructions удалил', kbDel.ok === true);
+  const kbList3 = await fetch(base + '/api/instructions').then((r) => r.json());
+  check('удалённая инструкция отсутствует', !kbList3.items.some((i) => i.id === kbAdd.item.id));
+
+  console.log('\n== Server: SMTP-конфиг из админки ==');
+  const smtpUpd = await fetch(base + '/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ smtp: { host: 'smtp.yandex.ru', port: 465, secure: true, user: 'bot@yandex.ru', pass: 'superpass', from: 'bot@yandex.ru' } }) }).then((r) => r.json());
+  check('SMTP включён в ответе конфига', smtpUpd.smtp && smtpUpd.smtp.on === true && smtpUpd.smtp.host === 'smtp.yandex.ru', JSON.stringify(smtpUpd.smtp));
+  check('smtpConfig применён в mailer', mailer.smtpConfig && mailer.smtpConfig.host === 'smtp.yandex.ru', JSON.stringify(mailer.smtpConfig));
+  const smtpGet = await fetch(base + '/api/config').then((r) => r.json());
+  check('пароль SMTP не отдаётся', !('pass' in (smtpGet.smtp || {})) && smtpGet.smtp.user === 'bot@yandex.ru', JSON.stringify(smtpGet.smtp));
+  await fetch(base + '/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ smtp: null }) }).then((r) => r.json());
+  const smtpOff = await fetch(base + '/api/config').then((r) => r.json());
+  check('SMTP выключается (outbox-режим)', smtpOff.smtp && smtpOff.smtp.on === false, JSON.stringify(smtpOff.smtp));
+
   server.close();
   aiMock.close();
 

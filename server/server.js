@@ -8,6 +8,7 @@ const store = require('./lib/store');
 const mailer = require('./lib/mailer');
 const ai = require('./lib/ai');
 const agent = require('./lib/agent');
+const kb = require('./lib/kb');
 
 const ADMIN_DIR = path.join(__dirname, '..', 'admin');
 const DEMO_DIR = path.join(__dirname, '..', 'demo');
@@ -28,6 +29,7 @@ function loadConfig() {
     qa: [],
     qaThreshold: 0.45,
     agentMode: 'rag',
+    ticketTtlDays: 14,
     smtp: null
   };
   try {
@@ -125,6 +127,26 @@ function logChat(action, chatId, extra) {
   store.appendLog(Object.assign({ at: now(), action, chatId }, extra || {}));
 }
 
+function pruneTickets(forceNow) {
+  const ttl = Number(CFG.ticketTtlDays);
+  if (!isFinite(ttl) || ttl <= 0) return 0;
+  const cutoff = (forceNow || Date.now()) - ttl * 86400000;
+  const chats = store.getChats();
+  const doomed = [];
+  Object.keys(chats).forEach((id) => {
+    const c = chats[id];
+    const ts = Date.parse(c.updatedAt || '') || Date.parse(c.createdAt || '') || 0;
+    if (ts && ts < cutoff) doomed.push(id);
+  });
+  if (!doomed.length) return 0;
+  store.mutate((s) => {
+    doomed.forEach((id) => delete s.chats[id]);
+    return { removed: doomed.length };
+  });
+  doomed.forEach((id) => logChat('ticket_expired', id, { ttlDays: ttl }));
+  return doomed.length;
+}
+
 const FALLBACK_TEXT = 'Не нашёл точного ответа по данным этого сайта. Переформулируйте вопрос или напишите в поддержку: ';
 
 function computeStats() {
@@ -145,7 +167,7 @@ function computeStats() {
     (c.messages || []).forEach((m) => { if (m.role === 'bot') answers++; });
     (c.hits || []).forEach((h) => {
       queryList.push(h.q);
-      if (!h.resolved) unresolvedList.push({ q: h.q, site: h.site || '', ts: h.ts });
+      if (!h.resolved) unresolvedList.push({ q: h.q, site: h.site || '', chatId: h.chatId || null, ts: h.ts });
     });
     if (c.rating) { ratedCount++; ratingSum += c.rating; }
   });
@@ -186,7 +208,9 @@ function publicConfig() {
     askEmail: CFG.askEmail !== undefined ? !!CFG.askEmail : true,
     qa: (CFG.qa || []).slice(0, 200).map((x) => ({ q: x.q || '', a: x.a || '', keys: Array.isArray(x.keys) ? x.keys.slice(0, 20) : [] })),
     qaThreshold: CFG.qaThreshold,
-    agentMode: CFG.agentMode
+    agentMode: CFG.agentMode,
+    ticketTtlDays: CFG.ticketTtlDays,
+    smtp: (CFG.smtp && CFG.smtp.host) ? { on: true, host: CFG.smtp.host, port: CFG.smtp.port || 465, secure: CFG.smtp.secure !== false, user: CFG.smtp.user || '' } : { on: false }
   };
 }
 
@@ -200,6 +224,7 @@ function chip(chat) {
     createdAt: chat.createdAt,
     updatedAt: chat.updatedAt,
     messageCount: ms.length,
+    unresolvedCount: (chat.hits || []).filter((h) => !h.resolved).length,
     lastText: ms.length ? String(ms[ms.length - 1].text).slice(0, 80) : ''
   };
 }
@@ -315,6 +340,42 @@ async function handle(req, res) {
     return json(res, 200, { items: items.slice(0, 8) });
   }
 
+  if (u.pathname === '/api/instructions' && req.method === 'GET') {
+    if (!adminGuard(req, res)) return;
+    return json(res, 200, { items: kb.list() });
+  }
+
+  if (u.pathname === '/api/instructions' && req.method === 'POST') {
+    if (!adminGuard(req, res)) return;
+    const body = await readBody(req);
+    const item = kb.add({ title: body.title, text: body.text, site: body.site, source: 'manual' });
+    if (!item) return json(res, 400, { error: 'empty instruction' });
+    logChat('instruction_added', 'global', { title: item.title.slice(0, 120) });
+    return json(res, 200, { ok: true, item });
+  }
+
+  if (u.pathname === '/api/instructions' && req.method === 'DELETE') {
+    if (!adminGuard(req, res)) return;
+    const id = String(u.searchParams.get('id') || '');
+    const removed = kb.remove(id);
+    if (!removed) return json(res, 404, { error: 'not found' });
+    logChat('instruction_removed', 'global', { id });
+    return json(res, 200, { ok: true });
+  }
+
+  if (u.pathname === '/api/smtp/test' && req.method === 'POST') {
+    if (!adminGuard(req, res)) return;
+    const body = await readBody(req);
+    const to = String(body.to || '').trim() || CFG.from;
+    const rec = await mailer.sendEmail({
+      to,
+      subject: 'Тест Adaptive Widget',
+      text: 'Это тестовое письмо от Adaptive Widget. Если вы его видите — SMTP настроен верно.'
+    });
+    logChat('smtp_test', 'global', { to, mode: mailer.smtpConfig ? 'smtp' : 'outbox' });
+    return json(res, 200, { ok: true, to: rec.to, mode: mailer.smtpConfig ? 'smtp' : 'outbox' });
+  }
+
   if (u.pathname === '/api/config' && req.method === 'GET') {
     if (!adminGuard(req, res)) return;
     return json(res, 200, publicConfig());
@@ -338,6 +399,26 @@ async function handle(req, res) {
     }
     if (typeof body.qaThreshold === 'number' && isFinite(body.qaThreshold)) CFG.qaThreshold = Math.min(0.99, Math.max(0, body.qaThreshold));
     if (body.agentMode === 'rag' || body.agentMode === 'tools') CFG.agentMode = body.agentMode;
+    if (body.ticketTtlDays !== undefined) {
+      const t = Math.round(Number(body.ticketTtlDays));
+      CFG.ticketTtlDays = isFinite(t) ? Math.min(365, Math.max(0, t)) : 0;
+    }
+    if (body.smtp === null || (body.smtp && typeof body.smtp === 'object')) {
+      const sm = body.smtp || {};
+      if (!sm.host) {
+        CFG.smtp = null;
+      } else if (typeof sm.host === 'string' && sm.host.trim()) {
+        CFG.smtp = {
+          host: sm.host.trim(),
+          port: Math.max(1, parseInt(sm.port, 10) || 465),
+          secure: sm.secure !== false,
+          user: String(sm.user || ''),
+          pass: String(sm.pass || ''),
+          from: String(sm.from || '').trim() || CFG.from
+        };
+      }
+      mailer.configure(CFG);
+    }
     if (CFG.from !== oldFrom) mailer.configure(CFG);
     const persisted = saveConfigFile();
     logChat('config_changed', 'global', { fields: Object.keys(body).join(','), persisted });
@@ -396,7 +477,7 @@ async function handle(req, res) {
         if (!a) a = { text: null, source: null };
         chat.lastAnswerSource = a.source || null;
         chat.hits = chat.hits || [];
-        chat.hits.push({ q: text, resolved: !!a.text, source: a.source || null, site: chat.siteName || '', ts: now() });
+        chat.hits.push({ q: text, resolved: !!a.text, source: a.source || null, site: chat.siteName || '', chatId, ts: now() });
         logChat('ai_answer', chatId, { source: a.source || null, fallback: a.source === 'search', text: text.slice(0, 120) });
         if (a.text) {
           const botMsg = { id: store.genId('m'), role: 'bot', text: a.text, ts: now() };
@@ -467,6 +548,9 @@ async function handle(req, res) {
       chat.instructions = String(body.instructions || '').slice(0, 4000);
       chat.updatedAt = now();
       chat.lastSeen = now();
+      if (chat.instructions.trim()) {
+        kb.upsert('chat:' + chatId, { text: chat.instructions, site: chat.siteName });
+      }
       logChat('instructions', chatId);
       return json(res, 200, { ok: true });
     }
@@ -505,11 +589,15 @@ async function handle(req, res) {
 }
 
 function start(port) {
+  pruneTickets();
+  const timer = setInterval(pruneTickets, 60 * 60 * 1000);
+  if (timer.unref) timer.unref();
   const server = http.createServer(handle);
   server.listen(port, () => {
     console.log('[server] Адаптивный виджет: http://localhost:' + port);
     console.log('[server] Админ-панель:   http://localhost:' + port + '/admin');
     console.log('[server] AI endpoint: ' + CFG.endpoint + ' (' + CFG.model + ')');
+    console.log('[server] TTL удаления тикетов: ' + CFG.ticketTtlDays + ' дн. (' + (CFG.ticketTtlDays > 0 ? 'автоочистка' : 'выкл') + ')');
   });
   return server;
 }
@@ -518,4 +606,4 @@ if (require.main === module) {
   start(Number(process.env.PORT || 3000));
 }
 
-module.exports = { start, store, ai, mailer, loadConfig };
+module.exports = { start, store, ai, mailer, kb, loadConfig, pruneTickets };

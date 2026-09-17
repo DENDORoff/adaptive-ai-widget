@@ -9,42 +9,47 @@
   :root {
     --brand: #0284c7;
     --accent: #7c3aed;
+    --ink: #0f172a;
+    --soft: #64748b;
+    --line: #e2e8f0;
   }
   * { box-sizing: border-box; margin: 0; }
-  body {
-    font-family: "Segoe UI", Roboto, Arial, sans-serif;
-    background: #f8fafc; color: #0f172a; line-height: 1.6;
-  }
-  header {
-    background: linear-gradient(120deg, var(--brand), var(--accent));
-    color: #fff; padding: 18px 40px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; }
-  .logo img { width: 34px; height: 34px; border-radius: 8px; }
-  nav a { color: #fff; text-decoration: none; margin-left: 20px; }
-  nav a:hover { text-decoration: underline; }
-  main { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
-  h1 { margin-bottom: 8px; }
-  h2 { margin: 36px 0 12px; }
-  .note {
-    background: #ecfeff; border: 1px solid #a5f3fc; border-radius: 12px;
-    padding: 14px 18px; font-size: 13.5px; color: #155e75; margin-bottom: 20px;
-  }
+  body { font-family: "Segoe UI", Roboto, Arial, sans-serif; background: #f8fafc; color: var(--ink); line-height: 1.6; }
+  header { background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 3; }
+  .header-in { max-width: 1080px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 22px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; }
+  .logo img { width: 36px; height: 36px; border-radius: 8px; }
+  .logo b { background: linear-gradient(90deg,var(--brand),var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  nav { margin-left: auto; display: flex; gap: 18px; align-items: center; }
+  nav a { color: var(--ink); text-decoration: none; font-size: 14px; font-weight: 500; }
+  nav a:hover { color: var(--brand); }
+  .btn-line { border: 1px solid var(--line); background: #fff; padding: 9px 18px; border-radius: 10px; font-weight: 600; font-size: 13.5px; color: var(--ink); text-decoration: none; }
+  .hero { background: linear-gradient(120deg, rgba(2,132,199,.10), rgba(124,58,237,.12)); }
+  .hero-in { max-width: 1080px; margin: 0 auto; padding: 46px 24px 30px; }
+  .hero h1 { font-size: 34px; letter-spacing: -.6px; margin-bottom: 12px; }
+  .hero h1 em { font-style: normal; background: linear-gradient(90deg,var(--brand),var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { color: var(--soft); font-size: 16px; max-width: 620px; }
+  .note { background: #ecfeff; border: 1px solid #a5f3fc; border-radius: 12px; padding: 14px 18px; font-size: 13.5px; color: #155e75; margin: 22px 0 0; }
   .note b { color: #0e7490; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
-  .product {
-    background: #fff; border-radius: 14px; padding: 18px;
-    box-shadow: 0 2px 10px rgba(0,0,0,.06);
-  }
-  .product img { width: 100%; border-radius: 10px; margin-bottom: 10px; }
-  .product .name { font-weight: 600; }
-  .product .price { color: var(--brand); font-weight: 700; margin-top: 6px; }
-  .faq-item { background: #fff; border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
-  .faq-item h3 { color: var(--accent); margin-bottom: 6px; }
-  .btn { display: inline-block; margin-top: 12px; background: var(--brand); color: #fff; padding: 12px 22px; border-radius: 10px; text-decoration: none; font-weight: 600; }
-  .btn:hover { filter: brightness(1.1); }
-  footer { text-align: center; padding: 30px; color: #64748b; }
+  main { max-width: 1080px; margin: 0 auto; padding: 30px 24px 50px; }
+  .cat-head { display: flex; align-items: baseline; gap: 16px; margin: 40px 0 18px; }
+  .cat-head h2 { margin: 0; font-size: 24px; letter-spacing: -.4px; }
+  .cat-head span { color: var(--soft); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
+  .product { background: #fff; border-radius: 16px; padding: 16px; border: 1px solid var(--line); transition: .18s; }
+  .product:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(2,132,199,.10); }
+  .product img { width: 100%; border-radius: 12px; margin-bottom: 12px; }
+  .product .name { font-weight: 700; font-size: 15px; }
+  .product .price { color: var(--brand); font-weight: 800; font-size: 17px; margin-top: 6px; }
+  section { margin-top: 46px; }
+  section h2 { font-size: 24px; letter-spacing: -.4px; margin-bottom: 14px; }
+  .faq-item { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; margin-bottom: 12px; }
+  .faq-item h3 { color: var(--accent); font-size: 15px; margin-bottom: 6px; }
+  .faq-item p { color: var(--soft); font-size: 14px; }
+  footer { border-top: 1px solid var(--line); background: #fff; margin-top: 40px; }
+  .foot { max-width: 1080px; margin: 0 auto; padding: 20px 24px; display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
+  .foot .copy { color: var(--soft); font-size: 13px; }
+  .foot a { color: var(--brand); text-decoration: none; margin-left: 14px; font-size: 13px; }
 </style>
 <script type="application/ld+json">
 {
@@ -84,73 +89,102 @@
 </head>
 <body>
 <header>
-  <div class="logo">
-    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230284c7'/%3E%3Ctext x='32' y='42' font-size='30' text-anchor='middle' fill='white'%3E⚡%3C/text%3E%3C/svg%3E" alt="GadgetHub logo">
-    GadgetHub
+  <div class="header-in">
+    <div class="logo">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230284c7'/%3E%3Ctext x='32' y='42' font-size='30' text-anchor='middle' fill='white'%3E⚡%3C/text%3E%3C/svg%3E" alt="GadgetHub logo">
+      <b>GadgetHub</b>
+    </div>
+    <nav>
+      <a href="#catalog">Каталог</a>
+      <a href="#delivery">Доставка</a>
+      <a href="#returns">Возврат</a>
+      <a href="#faq">Вопросы</a>
+      <a href="#contacts">Контакты</a>
+    </nav>
   </div>
-  <nav>
-    <a href="#catalog">Каталог</a>
-    <a href="#delivery">Доставка</a>
-    <a href="#returns">Возврат</a>
-    <a href="#faq">Вопросы</a>
-    <a href="#contacts">Контакты</a>
-  </nav>
 </header>
-<main>
-  <h1>Магазин электроники GadgetHub — демо с сервером</h1>
-  <p>Виджет подключён к серверу поддержки. Каждый диалог появляется в <b>http://localhost:3000/admin</b>.</p>
-  <div class="note">
-    <b>Что попробовать:</b> задайте вопрос («Сколько стоят наушники Aurora X?»), введите свой email — диалог появится в админке,
-    там же статистика, перевод на живого оператора и ответ ему по почте.
-  </div>
-  <a class="btn" href="#catalog">Смотреть каталог</a>
 
-  <h2 id="catalog">Каталог</h2>
+<div class="hero">
+  <div class="hero-in">
+    <h1>GadgetHub с <em>сервером поддержки</em></h1>
+    <p>То же демо, но виджет подключён к серверу. Каждый диалог появляется в админ-панели http://localhost:3000/admin: там чаты, статистика, перевод на оператора и ответы по email.</p>
+    <div class="note">
+      <b>Что попробовать:</b> задайте вопрос («Сколько стоят наушники Aurora X?»). Email спрашиваем, но его можно
+      <b>пропустить</b> (Enter без почты) — такой режим «рекомендуем, но не обязательно». Диалог сразу появится в админке,
+      там же статистика, фильтр «Нерешённые» и база инструкций для агента.
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="cat-head">
+    <h2 id="catalog">Каталог</h2>
+    <span>ответы агента строятся на этих данных сайта</span>
+  </div>
   <div class="grid">
     <div class="product" data-product data-name="Клавиатура MechPro 87" data-price="5490 ₽" data-desc="Механическая клавиатура с подсветкой и свитчами red.">
-      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%23e0f2fe'/%3E%3Ctext x='130' y='80' font-size='18' text-anchor='middle' fill='%230284c7'%3EKlaviatura%3C/text%3E%3C/svg%3E" alt="Клавиатура MechPro 87">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='b1' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23a78bfa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23b1)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E⌨️%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3EMechPro 87%3C/text%3E%3C/svg%3E" alt="Клавиатура MechPro 87">
       <div class="name">Клавиатура MechPro 87</div>
       <div class="price">5490 ₽</div>
     </div>
     <div class="product" data-product data-name="Смарт-часы Pulse S2" data-price="12990 ₽" data-desc="Спортивные часы с GPS и 10 днями автономности.">
-      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%23f3e8ff'/%3E%3Ctext x='130' y='80' font-size='18' text-anchor='middle' fill='%237c3aed'%3EChasy%3C/text%3E%3C/svg%3E" alt="Смарт-часы Pulse S2">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='b2' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23c084fc'/%3E%3Cstop offset='1' stop-color='%238b5cf6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23b2)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E⌚%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3EPulse S2%3C/text%3E%3C/svg%3E" alt="Смарт-часы Pulse S2">
       <div class="name">Смарт-часы Pulse S2</div>
       <div class="price">12990 ₽</div>
     </div>
     <div class="product" data-product data-name="Наушники Aurora X" data-price="7990 ₽" data-desc="Беспроводные наушники с шумоподавлением.">
-      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Crect width='260' height='140' rx='12' fill='%23dbeafe'/%3E%3Ctext x='130' y='80' font-size='18' text-anchor='middle' fill='%230284c7'%3ENaushniki%3C/text%3E%3C/svg%3E" alt="Наушники Aurora X">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Cdefs%3E%3ClinearGradient id='b3' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2338bdf8'/%3E%3Cstop offset='1' stop-color='%23818cf8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='260' height='140' rx='12' fill='url(%23b3)'/%3E%3Ctext x='130' y='72' font-size='40' text-anchor='middle'%3E🎧%3C/text%3E%3Ctext x='130' y='118' font-size='15' text-anchor='middle' fill='white' font-weight='bold'%3EAurora X%3C/text%3E%3C/svg%3E" alt="Наушники Aurora X">
       <div class="name">Наушники Aurora X</div>
       <div class="price">7990 ₽</div>
     </div>
   </div>
 
-  <h2 id="delivery">Доставка</h2>
-  <p>Курьером по Москве — на следующий день, бесплатно при заказе от 3000 ₽. По России отправляем СДЭК и Почтой России: сроки 2–7 рабочих дней. Трек-номер приходит в SMS и на почту.</p>
+  <section id="delivery">
+    <h2>Доставка</h2>
+    <p>Курьером по Москве — на следующий день, бесплатно при заказе от 3000 ₽. По России отправляем СДЭК и Почтой России: сроки 2–7 рабочих дней. Трек-номер приходит в SMS и на почту.</p>
+  </section>
 
-  <h2 id="returns">Возврат</h2>
-  <p>Товар можно вернуть в течение 14 дней с момента получения. Условия: сохранены товарный вид и упаковка. Оформление — на support@gadgethub.ru, возврат денег занимает до 5 рабочих дней.</p>
+  <section id="returns">
+    <h2>Возврат</h2>
+    <p>Товар можно вернуть в течение 14 дней с момента получения. Условия: сохранены товарный вид и упаковка. Оформление — на support@gadgethub.ru, возврат денег занимает до 5 рабочих дней.</p>
+  </section>
 
-  <h2 id="faq">Частые вопросы</h2>
-  <div class="faq-item" data-faq>
-    <h3>Даёте ли гарантию?</h3>
-    <p>Да, на всю технику 12 месяцев гарантии. Обслуживание — в сервисных центрах по всей России.</p>
-  </div>
-  <div class="faq-item" data-faq>
-    <h3>Можно ли оплатить частями?</h3>
-    <p>Да, доступна рассрочка до 4 месяцев без переплаты при оплате от 5000 ₽.</p>
-  </div>
+  <section>
+    <h2 id="faq">Частые вопросы</h2>
+    <div class="faq-item" data-faq>
+      <h3>Даёте ли гарантию?</h3>
+      <p>Да, на всю технику 12 месяцев гарантии. Обслуживание — в сервисных центрах по всей России.</p>
+    </div>
+    <div class="faq-item" data-faq>
+      <h3>Можно ли оплатить частями?</h3>
+      <p>Да, доступна рассрочка до 4 месяцев без переплаты при оплате от 5000 ₽.</p>
+    </div>
+  </section>
 
-  <h2 id="contacts">Контакты</h2>
-  <p>Телефон: <a href="tel:+78001002030">8 800 100 20 30</a> · Email: <a href="mailto:support@gadgethub.ru">support@gadgethub.ru</a><br>
-  Адрес: Москва, ул. Тверская, 12</p>
+  <section id="contacts" style="margin-top:20px">
+    <h2>Контакты</h2>
+    <p>Телефон: <a href="tel:+78001002030">8 800 100 20 30</a> · Email: <a href="mailto:support@gadgethub.ru">support@gadgethub.ru</a><br>
+    Адрес: Москва, ул. Тверская, 12</p>
+  </section>
 </main>
-<footer>© 2026 GadgetHub</footer>
+
+<footer>
+  <div class="foot">
+    <div class="copy">© 2026 GadgetHub · демо с сервером поддержки</div>
+    <div>
+      <a href="http://localhost:3000/admin">Админ-панель →</a>
+      <a href="mailto:support@gadgethub.ru">support@gadgethub.ru</a>
+    </div>
+  </div>
+</footer>
 <script>
 window.ADAPTIVE_WIDGET = {
+  siteName: 'GadgetHub',
   aiEnabled: true,
   model: 'qwen2.5:3b',
   backend: 'http://localhost:3000',     // URL сервера поддержки (его запускает `node server/server.js`)
-  supportEmail: 'support@deworld.su'    // почта, на которую операторы отвечают клиенту
+  supportEmail: 'support@deworld.su',   // почта, на которую операторы отвечают клиенту
+  askEmail: 'optional'                  // email рекомендуем, но можно пропустить
 };
 </script>
 <script src="../widget/adaptive-widget.js"></script>
