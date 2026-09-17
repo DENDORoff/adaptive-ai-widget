@@ -9,6 +9,7 @@ const mailer = require('./lib/mailer');
 const ai = require('./lib/ai');
 const agent = require('./lib/agent');
 const kb = require('./lib/kb');
+const discord = require('./lib/discord');
 
 const ADMIN_DIR = path.join(__dirname, '..', 'admin');
 const DEMO_DIR = path.join(__dirname, '..', 'demo');
@@ -30,7 +31,10 @@ function loadConfig() {
     qaThreshold: 0.45,
     agentMode: 'rag',
     ticketTtlDays: 14,
-    smtp: null
+    smtp: null,
+    discordWebhook: process.env.AW_DISCORD_WEBHOOK || '',
+    discordUsername: 'Adaptive Widget',
+    discordAvatar: ''
   };
   try {
     if (fs.existsSync(CFG_PATH)) Object.assign(def, JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')));
@@ -54,6 +58,7 @@ function saveConfigFile() {
 
 const CFG = loadConfig();
 mailer.configure(CFG);
+discord.configure(CFG);
 
 const CACHE_FILE = path.join(store.DATA_DIR, 'answers-cache.json');
 const CACHE = { entries: {}, hits: 0 };
@@ -210,7 +215,13 @@ function publicConfig() {
     qaThreshold: CFG.qaThreshold,
     agentMode: CFG.agentMode,
     ticketTtlDays: CFG.ticketTtlDays,
-    smtp: (CFG.smtp && CFG.smtp.host) ? { on: true, host: CFG.smtp.host, port: CFG.smtp.port || 465, secure: CFG.smtp.secure !== false, user: CFG.smtp.user || '' } : { on: false }
+    smtp: (CFG.smtp && CFG.smtp.host) ? { on: true, host: CFG.smtp.host, port: CFG.smtp.port || 465, secure: CFG.smtp.secure !== false, user: CFG.smtp.user || '' } : { on: false },
+    discord: {
+      on: !!CFG.discordWebhook,
+      webhook: CFG.discordWebhook ? String(CFG.discordWebhook).replace(/\/[^/]{6,}$/, '/…') : '',
+      username: CFG.discordUsername || 'Adaptive Widget',
+      avatar: CFG.discordAvatar || ''
+    }
   };
 }
 
@@ -310,6 +321,7 @@ async function handle(req, res) {
         return s;
       });
       logChat('chat_created', chatId, { email: snap.email, site: snap.siteName });
+      discord.notify('chat_created', { chatId, site: snap.siteName, email: snap.email, page: snap.page });
     }
     return json(res, 200, { ok: true, chatId });
   }
@@ -419,6 +431,10 @@ async function handle(req, res) {
       }
       mailer.configure(CFG);
     }
+    if (typeof body.discordWebhook === 'string') CFG.discordWebhook = body.discordWebhook.trim();
+    if (typeof body.discordUsername === 'string' && body.discordUsername.trim()) CFG.discordUsername = body.discordUsername.trim();
+    if (typeof body.discordAvatar === 'string') CFG.discordAvatar = body.discordAvatar.trim();
+    discord.configure(CFG);
     if (CFG.from !== oldFrom) mailer.configure(CFG);
     const persisted = saveConfigFile();
     logChat('config_changed', 'global', { fields: Object.keys(body).join(','), persisted });
@@ -488,6 +504,7 @@ async function handle(req, res) {
           chat.messages.push(fb);
           out.push({ id: fb.id, from: 'bot', text: fb.text });
           logChat('unresolved', chatId, { text: text.slice(0, 120) });
+          discord.notify('unresolved', { chatId, text, site: chat.siteName, email: chat.email });
         }
       }
       chat.updatedAt = now();
@@ -502,6 +519,7 @@ async function handle(req, res) {
         chat.ratedAt = now();
         chat.lastSeen = now();
         logChat('rating', chatId, { score });
+        discord.notify('rating', { chatId, score, site: chat.siteName, email: chat.email });
         return json(res, 200, { ok: true, score });
       }
       return json(res, 400, { error: 'score must be 1..5' });
@@ -513,6 +531,7 @@ async function handle(req, res) {
       chat.messages.push({ id: store.genId('m'), role: 'system', text: 'Чат передан оператору', ts: now() });
       chat.updatedAt = now();
       logChat('handoff', chatId, { email: chat.email });
+      discord.notify('handoff', { chatId, site: chat.siteName, email: chat.email, text: chat.messages.slice(-3).map((x) => x.text).join('\n') });
       sseSend(chatId, 'mode', { mode: 'human' });
       return json(res, 200, { ok: true, mode: 'human' });
     }
@@ -528,6 +547,7 @@ async function handle(req, res) {
       chat.updatedAt = now();
       chat.lastSeen = now();
       logChat('agent_reply', chatId, { text: text.slice(0, 120) });
+      discord.notify('agent_reply', { chatId, text, site: chat.siteName, email: chat.email });
 
       if (sseCount(chatId) === 0 && chat.email) {
         const tail = chat.messages.slice(-6).map((x) => (x.role === 'user' ? 'Пользователь: ' : 'Оператор: ') + x.text).join('\n');
@@ -598,6 +618,7 @@ function start(port) {
     console.log('[server] Админ-панель:   http://localhost:' + port + '/admin');
     console.log('[server] AI endpoint: ' + CFG.endpoint + ' (' + CFG.model + ')');
     console.log('[server] TTL удаления тикетов: ' + CFG.ticketTtlDays + ' дн. (' + (CFG.ticketTtlDays > 0 ? 'автоочистка' : 'выкл') + ')');
+    console.log('[server] Discord-уведомления: ' + (discord.isOn() ? 'включены' : 'выключены'));
   });
   return server;
 }

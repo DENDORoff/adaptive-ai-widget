@@ -530,6 +530,22 @@ async function main() {
   const darkDyn = await page.evaluate(() => window.__ADAPTIVE_DEBUG__.palette.dark);
   check('тёмная тема подхватывается динамически', darkDyn === true, 'dark=' + darkDyn);
 
+  // ---------- Тест 13: автомасштабирование виджета под окно ----------
+  console.log('\n== Тест 13: автомасштабирование под окно ==');
+  await page.setViewport({ width: 390, height: 780 });
+  await page.goto(base() + '/', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => !!window.__ADAPTIVE_DEBUG__, { timeout: 10000 });
+  await page.evaluate(() => { document.querySelector('[data-adaptive-widget]').shadowRoot.querySelector('.fab').click(); });
+  await new Promise((r) => setTimeout(r, 800));
+  const fit = await page.evaluate(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    const p = host.shadowRoot.querySelector('.panel').getBoundingClientRect();
+    return { vw: window.innerWidth, vh: window.innerHeight, w: Math.round(p.width), h: Math.round(p.height), x: Math.round(p.x), y: Math.round(p.y), pwvh: host.style.getPropertyValue('--pw-vh') };
+  });
+  check('панель разворачивается во весь экран на телефоне', fit.w >= fit.vw - 2 && fit.h >= fit.vh - 2, JSON.stringify(fit));
+  check('--pw-vh отражает высоту окна', !!fit.pwvh && Math.abs(parseInt(fit.pwvh, 10) - fit.vh) <= 2, fit.pwvh + ' vs ' + fit.vh);
+  await page.setViewport({ width: 800, height: 600 });
+
   check('итог: нет ошибок в консоли на всей сессии', pageErrors.length === 0, pageErrors.join('; '));
 
   await browser.close();

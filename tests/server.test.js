@@ -9,10 +9,13 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'aw-test-'));
 process.env.AW_DATA_DIR = TMP;
 process.env.AW_ENDPOINT = 'http://localhost:11999/v1/chat/completions';
 process.env.AW_MODEL = 'test-model';
+process.env.AW_CONFIG = path.join(TMP, 'config.json');
+fs.writeFileSync(process.env.AW_CONFIG, JSON.stringify({ from: 'support@deworld.su' }, null, 2));
 
 const srv = require('../server/server');
 const { store, mailer } = srv;
 const PORT = 13001;
+const HOOK_PORT = 11998;
 
 const KNOWLEDGE = [
   { title: 'Как оформить возврат?', content: 'Возврат оформляется в течение 14 дней с момента получения, деньги возвращаем за 5 рабочих дней.' },
@@ -21,6 +24,8 @@ const KNOWLEDGE = [
 
 let aiMock;
 let aiCalls = 0;
+let hookMock;
+const webhookHits = [];
 let passed = 0;
 let failed = 0;
 function check(name, cond, extra) {
@@ -58,6 +63,18 @@ function startAiMock() {
   return new Promise((r) => aiMock.listen(11999, r));
 }
 
+function startHookMock() {
+  hookMock = http.createServer((req, res) => {
+    let b = '';
+    req.on('data', (c) => (b += c));
+    req.on('end', () => {
+      try { webhookHits.push(JSON.parse(b)); } catch (e) { webhookHits.push({ raw: b }); }
+      res.writeHead(204); res.end();
+    });
+  });
+  return new Promise((r) => hookMock.listen(HOOK_PORT, r));
+}
+
 function post(url, body) {
   return fetch(url, {
     method: 'POST',
@@ -82,6 +99,7 @@ async function readSseUntilReply(chatId, expectedText) {
 
 async function main() {
   await startAiMock();
+  await startHookMock();
   const server = srv.start(PORT);
 
   const base = 'http://localhost:' + PORT;
@@ -282,8 +300,33 @@ async function main() {
   const smtpOff = await fetch(base + '/api/config').then((r) => r.json());
   check('SMTP выключается (outbox-режим)', smtpOff.smtp && smtpOff.smtp.on === false, JSON.stringify(smtpOff.smtp));
 
+  console.log('\n== Server: Discord-вебхук ==');
+  const hookUrl = 'http://localhost:' + HOOK_PORT + '/api/webhooks/123/test-token';
+  const dOff = await fetch(base + '/api/config').then((r) => r.json());
+  check('по умолчанию Discord выключен', dOff.discord && dOff.discord.on === false, JSON.stringify(dOff.discord));
+  const dUpd = await fetch(base + '/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ discordWebhook: hookUrl }) }).then((r) => r.json());
+  check('PUT /api/config включил Discord', dUpd.discord && dUpd.discord.on === true, JSON.stringify(dUpd.discord));
+  check('webhook в ответе маскируется', dUpd.discord.webhook && dUpd.discord.webhook.indexOf('test-token') === -1, dUpd.discord.webhook);
+
+  await post(base + '/api/init', { chatId: 'chatH', email: 'hook@example.com', siteName: 'HookShop', knowledge: KNOWLEDGE });
+  await post(base + '/api/chat/chatH/rating', { score: 5 });
+  await post(base + '/api/chat/chatH/message', { text: 'Гиппопотам HOOKFAIL HARDFAIL' });
+  await post(base + '/api/chat/chatH/handoff', {});
+  await new Promise((r) => setTimeout(r, 2500));
+
+  const titles = webhookHits.map((h) => ((h.embeds && h.embeds[0] && h.embeds[0].title) || '')).join(' | ');
+  check('события ушли в Discord-вебхук', webhookHits.length >= 3, 'hits=' + webhookHits.length + ' :: ' + titles);
+  check('уведомление о новом чате', titles.indexOf('Новый чат') !== -1, titles);
+  check('уведомление о нерешённом вопросе', titles.indexOf('Нерешённый вопрос') !== -1, titles);
+  check('уведомление о запросе оператора', titles.indexOf('Запрос оператора') !== -1, titles);
+  check('в embed есть сайт и email', webhookHits.some((h) => JSON.stringify(h).indexOf('HookShop') !== -1 && JSON.stringify(h).indexOf('hook@example.com') !== -1));
+
+  const dClear = await fetch(base + '/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ discordWebhook: '' }) }).then((r) => r.json());
+  check('Discord выключается пустым webhook', dClear.discord && dClear.discord.on === false, JSON.stringify(dClear.discord));
+
   server.close();
   aiMock.close();
+  if (hookMock) hookMock.close();
 
   console.log('\n==================================');
   console.log('  SERVER: ' + passed + ' passed, ' + failed + ' failed');

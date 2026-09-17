@@ -10,6 +10,9 @@
   "qaThreshold": 0.45,
   "agentMode": "rag",
   "ticketTtlDays": 14,
+  "discordWebhook": "",
+  "discordUsername": "Adaptive Widget",
+  "discordAvatar": "",
   "qa": [
     { "q": "Сколько стоят наушники Aurora X?", "a": "Наушники Aurora X стоят 7990 ₽. Доставка по России 2–7 дней.", "keys": ["цена", "наушники", "aurora", "стоимость"] },
     { "q": "Как вернуть товар?", "a": "Товар можно вернуть в течение 14 дней с момента получения.", "keys": ["возврат", "вернуть", "возвратить"] }
