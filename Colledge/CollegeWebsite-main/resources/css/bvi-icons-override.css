@@ -1,0 +1,77 @@
+/* Агрессивное переопределение всех путей иконок BVI */
+
+/* Убираем все background-image для BVI иконок */
+.bvi-images,
+.bvi-images.bvi-images-volume-up,
+.bvi-images.bvi-images-volume-off,
+.bvi-images.bvi-images-adjust,
+.bvi-images.bvi-images-image,
+.bvi-images.bvi-images-cog,
+.bvi-images.bvi-images-eye-slash,
+.bvi-images.bvi-images-minus-circle,
+.bvi-images.bvi-images-minus {
+    background-image: none !important;
+    background: transparent !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+    line-height: 1 !important;
+}
+
+/* Используем эмодзи вместо SVG */
+.bvi-images.bvi-images-volume-up::after {
+    content: "🔊" !important;
+    font-size: 18px !important;
+    margin: 0 !important;
+}
+
+.bvi-images.bvi-images-volume-off::after {
+    content: "🔇" !important;
+    font-size: 18px !important;
+    margin: 0 !important;
+}
+
+.bvi-images.bvi-images-adjust::after {
+    content: "⚙️" !important;
+    font-size: 18px !important;
+    margin: 0 !important;
+}
+
+.bvi-images.bvi-images-image::after {
+    content: "🖼️" !important;
+    font-size: 18px !important;
+    margin: 0 !important;
+}
+
+.bvi-images.bvi-images-cog::after {
+    content: "⚙️" !important;
+    font-size: 18px !important;
+    margin: 0 !important;
+}
+
+.bvi-images.bvi-images-eye-slash::after {
+    content: "👁️" !important;
+    font-size: 18px !important;
+    margin: 0 !important;
+}
+
+.bvi-images.bvi-images-minus-circle::after {
+    content: "➖" !important;
+    font-size: 18px !important;
+    margin: 0 !important;
+}
+
+.bvi-images.bvi-images-minus::after {
+    content: "−" !important;
+    font-size: 18px !important;
+    margin: 0 !important;
+}
+
+.bvi-images.bvi-images-eye::after {
+    content: "👁️" !important;
+    font-size: 18px !important;
+    margin: 0 !important;
+}

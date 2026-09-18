@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Виртуальный тур — ВКЭиС</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: radial-gradient(1200px 500px at 50% -80px, rgba(59,130,246,.25), transparent 60%),
+                linear-gradient(180deg, #1f2937 0%, #111827 100%);
+    color: #f9fafb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+    overflow: hidden;
+  }
+  .wrap { max-width: 560px; width: 100%; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(59,130,246,.15); color: #93c5fd;
+    border: 1px solid rgba(59,130,246,.4);
+    border-radius: 999px; padding: 6px 16px;
+    font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600;
+    margin-bottom: 18px;
+  }
+  .badge::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: #3b82f6; box-shadow: 0 0 0 0 rgba(59,130,246,.6);
+    animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(59,130,246,.55); }
+    70% { box-shadow: 0 0 0 9px rgba(59,130,246,0); }
+    100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+  }
+  h1 { font-size: clamp(20px, 5vw, 30px); font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
+  p { color: #9ca3af; font-size: clamp(13px, 3vw, 16px); line-height: 1.55; margin-bottom: 24px; }
+  .shine {
+    background: linear-gradient(110deg, #f9fafb 30%, #60a5fa 50%, #f9fafb 70%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+    animation: shine 4.5s linear infinite;
+  }
+  @keyframes shine { to { background-position: -200% 0; } }
+  .cta {
+    display: inline-block;
+    background: #2563eb; color: #fff; text-decoration: none;
+    padding: 12px 22px; border-radius: 10px; font-weight: 600; font-size: 14px;
+    transition: background .2s, transform .2s;
+  }
+  .cta:hover { background: #1d4ed8; transform: translateY(-1px); }
+  .meta { margin-top: 20px; font-size: 12px; color: #6b7280; }
+  .meta b { color: #9ca3af; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="badge">Скоро</div>
+    <h1 class="shine">Виртуальный тур по колледжу</h1>
+    <p>Панорамы и 3D-тур по учебному корпусу, аудиториям и лабораториям<br>Высшего Колледжа Электроники и Связи появятся здесь совсем скоро.</p>
+    <a class="cta" href="/" target="_top">Вернуться на сайт</a>
+    <div class="meta"><b>ВКЭиС</b> &nbsp;·&nbsp; г. Павлодар</div>
+  </div>
+</body>
+</html>

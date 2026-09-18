@@ -1,0 +1,263 @@
+@import 'bvi/dist/css/bvi.min.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === Base Styles === */
+@layer base {
+    body {
+        @apply bg-gray-900 text-gray-100;
+    }
+}
+
+/* === Custom Styles === */
+@layer components {
+    /* Навигационные ссылки с анимацией */
+    .nav-link {
+        @apply relative px-4 py-2 text-gray-300 font-medium transition-all duration-300;
+        @apply hover:text-white;
+    }
+    
+    /* Синяя полоска снизу */
+    .nav-link::after {
+        content: '';
+        @apply absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 transition-all duration-300;
+    }
+    
+    .nav-link:hover::after {
+        @apply w-full;
+    }
+    
+    /* Активная ссылка */
+    .nav-link.active {
+        @apply text-white;
+    }
+    
+    .nav-link.active::after {
+        @apply w-full;
+    }
+
+    /* Выпадающие меню навигации */
+    .nav-dropdown {
+        @apply relative;
+    }
+
+    .dropdown-menu {
+        @apply absolute top-full left-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-2xl;
+        @apply opacity-0 invisible transform -translate-y-2 transition-all duration-300;
+        @apply border border-gray-700 z-50 pointer-events-none;
+    }
+
+    .dropdown-menu a {
+        @apply block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors;
+        @apply border-b border-gray-700 last:border-b-0;
+    }
+
+    .dropdown-menu a:first-child {
+        @apply rounded-t-lg;
+    }
+
+    .dropdown-menu a:last-child {
+        @apply rounded-b-lg;
+    }
+
+    .nav-dropdown:hover .dropdown-menu {
+        @apply opacity-100 visible translate-y-0 pointer-events-auto;
+    }
+
+    /* Кнопки */
+    .btn {
+        @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-300;
+        @apply transform hover:scale-105 active:scale-95;
+    }
+    
+    .btn-primary {
+        @apply bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl;
+        @apply hover:shadow-blue-500/50;
+    }
+    
+    .btn-secondary {
+        @apply bg-white text-gray-900 hover:bg-gray-100 shadow-lg hover:shadow-xl;
+    }
+    
+    .btn-outline {
+        @apply bg-transparent border-2 border-white text-white hover:bg-white hover:text-gray-900;
+    }
+
+    /* Hero карточки (3 ячейки) */
+    .hero-card {
+        @apply bg-black/30 backdrop-blur-md rounded-2xl p-6 text-center;
+        @apply border border-white/10 hover:border-blue-500/50;
+        @apply transition-all duration-300 hover:bg-black/40 hover:scale-105;
+        @apply cursor-pointer;
+    }
+
+    /* Секции */
+    .section-title {
+        @apply text-3xl md:text-4xl font-bold text-white mb-4;
+    }
+    
+    .section-subtitle {
+        @apply text-lg text-gray-400 max-w-2xl mx-auto;
+    }
+
+    /* Карточки новостей */
+    .news-card {
+        @apply bg-gray-800 rounded-lg overflow-hidden shadow-lg transition-all duration-300;
+        @apply hover:shadow-2xl hover:shadow-blue-500/20 hover:-translate-y-1;
+    }
+
+    /* Градиент для Hero секции */
+    .gradient-overlay {
+        background: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.3) 0%,
+            rgba(0, 0, 0, 0.6) 50%,
+            rgba(0, 0, 0, 0.8) 100%
+        );
+    }
+}
+
+/* Анимации */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce-slow {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.6s ease-out forwards;
+}
+
+.animate-slide-down {
+    animation: slide-down 0.4s ease-out forwards;
+}
+
+.animate-bounce {
+    animation: bounce-slow 2s infinite;
+}
+
+/* Dropdown для языков */
+.language-dropdown {
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.language-switcher:hover .language-dropdown {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Модальное окно */
+.modal-backdrop {
+    @apply fixed inset-0 bg-black/70 backdrop-blur-sm z-50;
+    @apply flex items-center justify-center p-4;
+    animation: fade-in 0.3s ease-out;
+}
+
+.modal-content {
+    @apply bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full;
+    @apply border border-gray-700;
+    animation: slide-down 0.3s ease-out;
+}
+
+/* FAQ Аккордеон */
+.faq-item {
+    @apply border-b border-gray-700 last:border-b-0;
+}
+
+.faq-question {
+    @apply w-full text-left p-6 flex items-center justify-between;
+    @apply hover:bg-gray-700/50 transition-colors cursor-pointer;
+}
+
+.faq-answer {
+    @apply px-6 pb-6 text-gray-400;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.faq-answer.active {
+    max-height: 500px;
+    padding-bottom: 1.5rem;
+}
+
+.faq-icon {
+    @apply transition-transform duration-300;
+}
+
+.faq-icon.active {
+    transform: rotate(180deg);
+}
+
+/* Форма */
+.form-input {
+    @apply w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg;
+    @apply text-white placeholder-gray-400;
+    @apply focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20;
+    @apply transition-all duration-300;
+}
+
+.form-label {
+    @apply block text-sm font-medium text-gray-300 mb-2;
+}
+
+/* Скроллбар */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1a1d2e;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #3b82f6;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #2563eb;
+}
+
+/* Плавная прокрутка */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .section-title {
+        @apply text-2xl;
+    }
+    
+    .btn {
+        @apply text-sm px-4 py-2;
+    }
+}

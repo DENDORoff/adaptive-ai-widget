@@ -1,0 +1,4 @@
+Contact: mailto:security@college.local
+Expires: 2027-01-27T00:00:00Z
+Preferred-Languages: en, ru, kk
+Canonical: https://college.local/.well-known/security.txt

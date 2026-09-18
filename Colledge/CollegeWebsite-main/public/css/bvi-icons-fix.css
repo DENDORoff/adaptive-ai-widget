@@ -1,0 +1,163 @@
+
+.bvi-panel .bvi-panel-settings .bvi-panel-settings-item[data-bvi-images]::before {
+    content: "🖼️" !important;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+    font-size: 20px !important;
+}
+
+.bvi-panel .bvi-panel-settings .bvi-panel-settings-item[data-bvi-letter-spacing]::before {
+    content: "⬌" !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 20px !important;
+    font-weight: bold !important;
+}
+
+
+.bvi-panel .bvi-panel-settings .bvi-panel-settings-item[data-bvi-line-height]::before {
+    content: "⬍" !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 20px !important;
+    font-weight: bold !important;
+    transform: rotate(90deg);
+    display: inline-block;
+}
+
+
+.bvi-panel .bvi-panel-settings .bvi-panel-settings-item[data-bvi-speech]::before {
+    content: "🔊" !important;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+    font-size: 20px !important;
+}
+
+
+.bvi-panel .bvi-panel-settings .bvi-panel-settings-item[data-bvi-built-elements]::before {
+    content: "📦" !important;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+    font-size: 20px !important;
+}
+
+
+.bvi-panel .bvi-panel-header .bvi-panel-setting::before {
+    content: "⚙️" !important;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+    font-size: 20px !important;
+}
+
+.bvi-panel .bvi-panel-header .bvi-panel-link::before {
+    content: "🔗" !important;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+    font-size: 20px !important;
+}
+
+
+.bvi-panel .bvi-panel-header .bvi-panel-reset::before {
+    content: "↻" !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 24px !important;
+    font-weight: bold !important;
+}
+
+
+.bvi-panel .bvi-panel-header .bvi-panel-close::before {
+    content: "✖" !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 20px !important;
+    font-weight: bold !important;
+}
+
+
+.bvi-panel .bvi-panel-settings .bvi-panel-settings-item::before,
+.bvi-panel .bvi-panel-header > div::before {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 1 !important;
+}
+
+
+.bvi-panel [class*="icon-"]::before {
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", Arial, sans-serif !important;
+}
+
+
+@supports not (content: "🖼️") {
+    .bvi-panel .bvi-panel-settings .bvi-panel-settings-item[data-bvi-images]::before {
+        content: "IMG" !important;
+        font-size: 14px !important;
+    }
+    
+    .bvi-panel .bvi-panel-settings .bvi-panel-settings-item[data-bvi-letter-spacing]::before {
+        content: "A-Z" !important;
+        font-size: 14px !important;
+    }
+    
+    .bvi-panel .bvi-panel-settings .bvi-panel-settings-item[data-bvi-line-height]::before {
+        content: "H" !important;
+        font-size: 14px !important;
+    }
+    
+    .bvi-panel .bvi-panel-settings .bvi-panel-settings-item[data-bvi-speech]::before {
+        content: "SND" !important;
+        font-size: 14px !important;
+    }
+    
+    .bvi-panel .bvi-panel-settings .bvi-panel-settings-item[data-bvi-built-elements]::before {
+        content: "ELM" !important;
+        font-size: 14px !important;
+    }
+}
+
+
+.bvi-images {
+    background-image: none !important;
+}
+
+.bvi-images.bvi-images-volume-up,
+.bvi-images.bvi-images-volume-off,
+.bvi-images.bvi-images-adjust,
+.bvi-images.bvi-images-image,
+.bvi-images.bvi-images-cog,
+.bvi-images.bvi-images-eye-slash,
+.bvi-images.bvi-images-minus-circle,
+.bvi-images.bvi-images-minus {
+    background-image: none !important;
+    font-size: 16px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: bold !important;
+}
+
+.bvi-images.bvi-images-volume-up::before {
+    content: "🔊" !important;
+}
+
+.bvi-images.bvi-images-volume-off::before {
+    content: "🔇" !important;
+}
+
+.bvi-images.bvi-images-adjust::before {
+    content: "⚙️" !important;
+}
+
+.bvi-images.bvi-images-image::before {
+    content: "🖼️" !important;
+}
+
+.bvi-images.bvi-images-cog::before {
+    content: "⚙️" !important;
+}
+
+.bvi-images.bvi-images-eye-slash::before {
+    content: "🚫" !important;
+}
+
+.bvi-images.bvi-images-minus-circle::before {
+    content: "➖" !important;
+}
+
+.bvi-images.bvi-images-minus::before {
+    content: "−" !important;
+}

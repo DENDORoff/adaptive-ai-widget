@@ -1,0 +1,71 @@
+
+body.bvi-active * {
+    transition: none !important;
+    animation: none !important;
+}
+
+
+.bvi-panel-container {
+    z-index: 99999 !important;
+}
+
+.bvi-panel-active {
+    z-index: 99998 !important;
+}
+
+
+body.bvi-active .bg-gray-900,
+body.bvi-active .bg-gray-800,
+body.bvi-active .bg-gray-700 {
+    background-color: inherit !important;
+}
+
+
+body.bvi-active .dropdown-menu,
+body.bvi-active .language-dropdown {
+    background-color: inherit !important;
+    color: inherit !important;
+}
+
+
+body.bvi-active .backdrop-blur-sm {
+    backdrop-filter: none !important;
+}
+
+
+body.bvi-active button,
+body.bvi-active a {
+    text-decoration: underline !important;
+    cursor: pointer !important;
+}
+
+
+body.bvi-active [id*="Modal"] {
+    z-index: 99997 !important;
+}
+
+
+body.bvi-active img {
+    border: 2px solid currentColor !important;
+}
+
+
+body.bvi-active .bvi-hide {
+    display: none !important;
+}
+
+
+.bvi-show {
+    display: none;
+}
+
+body.bvi-active .bvi-show {
+    display: block !important;
+}
+
+
+body.bvi-active .bvi-no-styles * {
+    background: inherit !important;
+    color: inherit !important;
+    font-size: inherit !important;
+}
