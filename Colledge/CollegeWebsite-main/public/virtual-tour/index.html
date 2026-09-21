@@ -6,66 +6,303 @@
 <title>Виртуальный тур — ВКЭиС</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
+  html, body { height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background: radial-gradient(1200px 500px at 50% -80px, rgba(59,130,246,.25), transparent 60%),
                 linear-gradient(180deg, #1f2937 0%, #111827 100%);
     color: #f9fafb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 24px;
-    overflow: hidden;
   }
-  .wrap { max-width: 560px; width: 100%; }
+  .tour { position: fixed; inset: 0; }
+  .stage { position: absolute; inset: 0; overflow: hidden; cursor: grab; touch-action: none; }
+  .stage.grabbing { cursor: grabbing; }
+  .stage img {
+    position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+    object-fit: cover; will-change: transform; user-select: none; -webkit-user-drag: none;
+    opacity: 0; transition: opacity .45s ease;
+  }
+  .stage img.on { opacity: 1; }
+  .topbar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    padding: 16px 18px;
+    background: linear-gradient(180deg, rgba(17,24,39,.78) 0%, rgba(17,24,39,0) 100%);
+  }
   .badge {
     display: inline-flex; align-items: center; gap: 8px;
-    background: rgba(59,130,246,.15); color: #93c5fd;
-    border: 1px solid rgba(59,130,246,.4);
-    border-radius: 999px; padding: 6px 16px;
-    font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600;
-    margin-bottom: 18px;
+    background: rgba(59,130,246,.16); color: #93c5fd;
+    border: 1px solid rgba(59,130,246,.45); border-radius: 999px;
+    padding: 4px 12px; font-size: 11px; letter-spacing: .08em;
+    text-transform: uppercase; font-weight: 600; margin-bottom: 8px;
   }
   .badge::before {
-    content: ""; width: 8px; height: 8px; border-radius: 50%;
-    background: #3b82f6; box-shadow: 0 0 0 0 rgba(59,130,246,.6);
-    animation: pulse 1.8s infinite;
+    content: ""; width: 7px; height: 7px; border-radius: 50%;
+    background: #3b82f6; box-shadow: 0 0 0 0 rgba(59,130,246,.6); animation: pulse 1.8s infinite;
   }
-  @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(59,130,246,.55); }
-    70% { box-shadow: 0 0 0 9px rgba(59,130,246,0); }
-    100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59,130,246,.55); } 70% { box-shadow: 0 0 0 8px rgba(59,130,246,0); } 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); } }
+  h1 { font-size: clamp(17px, 3.4vw, 24px); font-weight: 800; line-height: 1.15; text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+  .cap { color: #c7d2fe; font-size: clamp(12px, 2.2vw, 14px); margin-top: 4px; text-shadow: 0 1px 8px rgba(0,0,0,.6); }
+  .fbtn {
+    background: rgba(255,255,255,.1); color: #e5e7eb; border: 1px solid rgba(255,255,255,.22);
+    border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background .2s, transform .2s; backdrop-filter: blur(6px);
   }
-  h1 { font-size: clamp(20px, 5vw, 30px); font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
-  p { color: #9ca3af; font-size: clamp(13px, 3vw, 16px); line-height: 1.55; margin-bottom: 24px; }
-  .shine {
-    background: linear-gradient(110deg, #f9fafb 30%, #60a5fa 50%, #f9fafb 70%);
-    background-size: 200% 100%;
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent; color: transparent;
-    animation: shine 4.5s linear infinite;
+  .fbtn:hover { background: rgba(59,130,246,.35); border-color: #60a5fa; color: #fff; }
+  .fbtn:active { transform: scale(.96); }
+  .hint {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 6;
+    background: rgba(17,24,39,.72); border: 1px solid rgba(255,255,255,.16);
+    color: #e5e7eb; padding: 8px 16px; border-radius: 999px; font-size: 13px;
+    pointer-events: none; opacity: 0; transition: opacity .4s ease; backdrop-filter: blur(6px);
+    text-align: center; white-space: nowrap;
   }
-  @keyframes shine { to { background-position: -200% 0; } }
-  .cta {
-    display: inline-block;
-    background: #2563eb; color: #fff; text-decoration: none;
-    padding: 12px 22px; border-radius: 10px; font-weight: 600; font-size: 14px;
-    transition: background .2s, transform .2s;
+  .hint.show { opacity: 1; }
+  .nav {
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 10;
+    width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(17,24,39,.55); color: #e5e7eb;
+    border: 1px solid rgba(255,255,255,.28); font-size: 22px; cursor: pointer;
+    transition: background .2s, transform .2s; backdrop-filter: blur(6px);
   }
-  .cta:hover { background: #1d4ed8; transform: translateY(-1px); }
-  .meta { margin-top: 20px; font-size: 12px; color: #6b7280; }
-  .meta b { color: #9ca3af; font-weight: 600; }
+  .nav:hover { background: rgba(59,130,246,.55); border-color: #60a5fa; }
+  .nav:active { transform: translateY(-50%) scale(.94); }
+  .nav.prev { left: 14px; }
+  .nav.next { right: 14px; }
+  .dots {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
+    display: flex; gap: 8px; align-items: center;
+    background: rgba(17,24,39,.6); padding: 8px 12px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(6px);
+  }
+  .dots button {
+    width: 9px; height: 9px; border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(255,255,255,.32); transition: all .2s ease;
+  }
+  .dots button.active { background: #3b82f6; width: 26px; border-radius: 999px; }
+  .zoombar {
+    position: absolute; right: 14px; bottom: 16px; z-index: 10;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .z {
+    width: 38px; height: 38px; border-radius: 10px; font-size: 19px; font-weight: 700;
+    background: rgba(17,24,39,.6); color: #e5e7eb;
+    border: 1px solid rgba(255,255,255,.22); cursor: pointer;
+    transition: background .2s, transform .2s; backdrop-filter: blur(6px);
+  }
+  .z:hover { background: rgba(59,130,246,.5); }
+  .z:active { transform: scale(.93); }
+  @media (max-width: 560px) {
+    .topbar { padding: 12px; flex-direction: column; gap: 8px; }
+    .fbtn { padding: 7px 10px; font-size: 12px; }
+    .nav { width: 38px; height: 38px; font-size: 18px; }
+    .hint { white-space: normal; width: 80%; }
+  }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="badge">Скоро</div>
-    <h1 class="shine">Виртуальный тур по колледжу</h1>
-    <p>Панорамы и 3D-тур по учебному корпусу, аудиториям и лабораториям<br>Высшего Колледжа Электроники и Связи появятся здесь совсем скоро.</p>
-    <a class="cta" href="/" target="_top">Вернуться на сайт</a>
-    <div class="meta"><b>ВКЭиС</b> &nbsp;·&nbsp; г. Павлодар</div>
+  <div id="tour" class="tour">
+    <div id="stage" class="stage" aria-label="Панорама колледжа"></div>
+
+    <div class="topbar">
+      <div>
+        <div class="badge">Виртуальный тур</div>
+        <h1 id="sceneTitle"></h1>
+        <div id="sceneCaption" class="cap"></div>
+      </div>
+      <button id="fsBtn" class="fbtn" title="Открыть на весь экран">⛶ Весь экран</button>
+    </div>
+
+    <div id="hint" class="hint">Перетаскивайте, чтобы осмотреться · колесо или кнопки — масштаб</div>
+
+    <button id="prevBtn" class="nav prev" aria-label="Предыдущая сцена">‹</button>
+    <button id="nextBtn" class="nav next" aria-label="Следующая сцена">›</button>
+
+    <div id="dots" class="dots"></div>
+
+    <div class="zoombar">
+      <button id="zin" class="z" title="Приблизить">+</button>
+      <button id="zout" class="z" title="Отдалить">−</button>
+      <button id="zreset" class="z" title="Сбросить вид">⌂</button>
+    </div>
   </div>
+
+<script>
+(function () {
+  var SCENES = [
+    { img: '../images/college1.jpg',  title: 'Главный корпус',  cap: 'Учебный корпус ВКЭиС — главный вход и аудитории' },
+    { img: '../images/college2.jpg',  title: 'Корпус и территория', cap: 'Вид на колледж и прилегающую территорию' },
+    { img: '../images/college3.jpg',  title: 'Аудитории',       cap: 'Учебные аудитории и лаборатории' },
+    { img: '../images/back.jpg',      title: 'Колледж',         cap: 'Корпус Высшего Колледжа Электроники и Связи' },
+    { img: '../images/bg1-header.jpg', title: 'Панорама',       cap: 'Широкая панорама колледжа' },
+    { img: '../images/call-center.jpg', title: 'Call-центр',    cap: 'Специалисты call-центра отвечают на ваши вопросы' }
+  ];
+
+  var stage = document.getElementById('stage'),
+      titleEl = document.getElementById('sceneTitle'),
+      capEl = document.getElementById('sceneCaption'),
+      hintEl = document.getElementById('hint'),
+      fsBtn = document.getElementById('fsBtn'),
+      dotBox = document.getElementById('dots');
+
+  var idx = 0, scale = 1, panX = 0, panY = 0;
+  var vw = 0, vh = 0, anim = null;
+  var imgEl = null, loading = new Image();
+
+  function size() {
+    vw = window.innerWidth; vh = window.innerHeight;
+    clamp();
+  }
+
+  function maxPan() {
+    var eW = vw * scale, eH = vh * scale;
+    return { x: Math.max(0, (eW - vw) / 2), y: Math.max(0, (eH - vh) / 2) };
+  }
+  function clamp() {
+    var m = maxPan();
+    panX = Math.max(-m.x, Math.min(m.x, panX));
+    panY = Math.max(-m.y, Math.min(m.y, panY));
+    draw();
+  }
+  function draw() {
+    if (imgEl) imgEl.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+  }
+
+  function load(i) {
+    idx = i;
+    var s = SCENES[i];
+    if (!imgEl) {
+      imgEl = document.createElement('img');
+      imgEl.alt = s.title;
+      imgEl.draggable = false;
+      stage.appendChild(imgEl);
+    }
+    var next = new Image();
+    next.onload = function () {
+      if (imgEl.src === next.src || imgEl.getAttribute('src') === s.img) return;
+      imgEl.src = s.img;
+      imgEl.alt = s.title;
+      imgEl.classList.add('on');
+      scale = 1; panX = 0; panY = 0; draw();
+    };
+    next.src = s.img;
+    titleEl.textContent = s.title;
+    capEl.textContent = s.cap;
+    var dots = dotBox.querySelectorAll('button');
+    dots.forEach(function (d, k) { d.classList.toggle('active', k === i); });
+    preload();
+  }
+
+  function preload() {
+    [idx - 1, idx + 1].forEach(function (i) {
+      if (SCENES[i]) { var p = new Image(); p.src = SCENES[i].img; }
+    });
+  }
+
+  function step(d) {
+    var n = idx + d;
+    if (n < 0) n = SCENES.length - 1;
+    if (n >= SCENES.length) n = 0;
+    load(n);
+    flashHint();
+  }
+
+  function zoom(f, cx, cy) {
+    var m = maxPan();
+    var nx = panX, ny = panY;
+    var nscale = Math.max(1, Math.min(8, scale * f));
+    var k = nscale / scale;
+    nx = (cx !== undefined) ? (cx - (cx - nx) * k) : 0;
+    ny = (cy !== undefined) ? (cy - (cy - ny) * k) : 0;
+    scale = nscale; panX = nx; panY = ny;
+    clamp();
+    flashHint(1400);
+  }
+
+  var hintT = null;
+  function flashHint(delay) {
+    if (hintT) clearTimeout(hintT);
+    hintEl.classList.add('show');
+    hintT = setTimeout(function () { hintEl.classList.remove('show'); }, delay || 2000);
+  }
+
+  // —— навигация ——
+  document.getElementById('prevBtn').addEventListener('click', function () { step(-1); });
+  document.getElementById('nextBtn').addEventListener('click', function () { step(1); });
+  document.getElementById('zin').addEventListener('click', function () { zoom(1.45); });
+  document.getElementById('zout').addEventListener('click', function () { zoom(1 / 1.45); });
+  document.getElementById('zreset').addEventListener('click', function () { scale = 1; panX = 0; panY = 0; draw(); });
+
+  SCENES.forEach(function (_, i) {
+    var b = document.createElement('button');
+    b.title = SCENES[i].title;
+    b.addEventListener('click', function () { load(i); });
+    dotBox.appendChild(b);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') step(-1);
+    else if (e.key === 'ArrowRight') step(1);
+    else if (e.key === 'Escape') { scale = 1; panX = 0; panY = 0; draw(); }
+  });
+
+  // —— drag ——
+  var dragging = false, startX = 0, startY = 0, startPanX = 0, startPanY = 0;
+  stage.addEventListener('pointerdown', function (e) {
+    if (e.target !== imgEl && e.target !== stage) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    dragging = true;
+    stage.classList.add('grabbing');
+    startX = e.clientX; startY = e.clientY;
+    startPanX = panX; startPanY = panY;
+    e.preventDefault();
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    panX = startPanX + (e.clientX - startX);
+    panY = startPanY + (e.clientY - startY);
+    clamp();
+  });
+  function endDrag() { dragging = false; stage.classList.remove('grabbing'); }
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+
+  // —— wheel ——
+  stage.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var r = stage.getBoundingClientRect();
+    zoom(e.deltaY < 0 ? 1.18 : 1 / 1.18, e.clientX - r.left + panX, e.clientY - r.top + panY);
+  }, { passive: false });
+
+  // —— pinch ——
+  var pinch = null;
+  stage.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 2) {
+      pinch = { d: Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY), s: scale };
+    }
+  }, { passive: true });
+  stage.addEventListener('touchmove', function (e) {
+    if (e.touches.length === 2 && pinch) {
+      e.preventDefault();
+      var d = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+      scale = Math.max(1, Math.min(8, pinch.s * (d / pinch.d)));
+      clamp();
+    }
+  }, { passive: false });
+  stage.addEventListener('touchend', function () { pinch = null; });
+
+  // —— fullscreen ——
+  fsBtn.addEventListener('click', function () {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else if (document.documentElement.requestFullscreen) { document.documentElement.requestFullscreen().catch(function () {}); }
+  });
+
+  window.addEventListener('resize', size);
+
+  size();
+  load(0);
+  flashHint();
+})();
+</script>
 </body>
 </html>

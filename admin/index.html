@@ -282,6 +282,8 @@
       <label>Email отправителя уведомлений</label>
       <input id="cfg_from" placeholder="support@deworld.su">
       <label><input type="checkbox" id="cfg_askemail" style="width:auto;margin-right:6px"> Спрашивать email перед чатом</label>
+      <label><input type="checkbox" id="cfg_operators" style="width:auto;margin-right:6px"> Операторы включены</label>
+      <p class="hint">Выкл — кнопки «Позвать оператора»/«Вернуть ИИ» у клиентов скрываются, запрос оператора отклоняется, работает только ИИ-агент (админ-ответ тоже отключается).</p>
       <label>Инструкции для ИИ-агента (добавляются к каждому ответу)</label>
       <textarea id="cfg_instr" placeholder="Например: всегда предлагайте скидку 10% новым клиентам"></textarea>
       <label>Вопрос-ответ (работает даже без ИИ-модели). Одна пара на строку: «Вопрос || Ответ» или «Вопрос || Ответ || ключ1, ключ2»</label>
@@ -695,6 +697,8 @@
       $('#cfg_apikey').placeholder = c.apiKey ? ('сохранён: ' + c.apiKey) : 'ключ не задан';
       $('#cfg_from').value = c.from || '';
       $('#cfg_askemail').checked = !!c.askEmail;
+      $('#cfg_operators').checked = c.operatorsEnabled !== false;
+      applyOperatorsUI();
       $('#cfg_instr').value = c.instructions || '';
       $('#cfg_qa').value = (c.qa || []).map((x) => [x.q, x.a, (x.keys || []).join(',')].filter(Boolean).join(' || ')).join('\n');
       $('#cfg_qathr').value = (typeof c.qaThreshold === 'number' ? c.qaThreshold : 0.45).toFixed(2);
@@ -719,6 +723,12 @@
     } catch (e) { toast('Не удалось загрузить настройки'); }
   }
 
+  function applyOperatorsUI() {
+    const on = $('#cfg_operators').checked;
+    const r = document.querySelector('.reply');
+    if (r) r.style.display = on ? '' : 'none';
+  }
+
   $('#btn_savecfg').addEventListener('click', async () => {
     const body = {
       provider: $('#cfg_provider').value,
@@ -728,6 +738,7 @@
       from: $('#cfg_from').value.trim(),
       instructions: $('#cfg_instr').value,
       askEmail: $('#cfg_askemail').checked,
+      operatorsEnabled: $('#cfg_operators').checked,
       ticketTtlDays: parseInt($('#cfg_ttl').value, 10) || 0
     };
     const k = $('#cfg_apikey').value.trim();
@@ -744,6 +755,7 @@
       const r = await api('/api/config', { method: 'PUT', body: JSON.stringify(body) });
       $('#cfg_saved').textContent = r.persisted ? '✓ сохранено в config.json' : '✓ сохранено (в памяти, без файла)';
       $('#cfg_apikey').value = '';
+      applyOperatorsUI();
       setTimeout(() => ($('#cfg_saved').textContent = ''), 3000);
     } catch (e) { toast('Не удалось сохранить настройки'); }
   });

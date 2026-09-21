@@ -35,7 +35,8 @@ function loadConfig() {
     discordWebhook: process.env.AW_DISCORD_WEBHOOK || '',
     discordUsername: 'Adaptive Widget',
     discordAvatar: '',
-    discordInsecure: /^(1|true|yes)$/i.test(process.env.AW_DISCORD_INSECURE || '')
+    discordInsecure: /^(1|true|yes)$/i.test(process.env.AW_DISCORD_INSECURE || ''),
+    operatorsEnabled: true
   };
   try {
     if (fs.existsSync(CFG_PATH)) Object.assign(def, JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')));
@@ -212,6 +213,7 @@ function publicConfig() {
     from: CFG.from,
     instructions: CFG.instructions || '',
     askEmail: CFG.askEmail !== undefined ? !!CFG.askEmail : true,
+    operatorsEnabled: !!CFG.operatorsEnabled,
     qa: (CFG.qa || []).slice(0, 200).map((x) => ({ q: x.q || '', a: x.a || '', keys: Array.isArray(x.keys) ? x.keys.slice(0, 20) : [] })),
     qaThreshold: CFG.qaThreshold,
     agentMode: CFG.agentMode,
@@ -333,7 +335,7 @@ async function handle(req, res) {
       logChat('chat_created', chatId, { email: snap.email, site: snap.siteName });
       discord.notify('chat_created', { chatId, site: snap.siteName, email: snap.email, page: snap.page });
     }
-    return json(res, 200, { ok: true, chatId });
+    return json(res, 200, { ok: true, chatId, operatorsEnabled: !!CFG.operatorsEnabled });
   }
 
   if (u.pathname === '/api/chats' && req.method === 'GET') {
@@ -445,6 +447,7 @@ async function handle(req, res) {
     if (typeof body.discordUsername === 'string' && body.discordUsername.trim()) CFG.discordUsername = body.discordUsername.trim();
     if (typeof body.discordAvatar === 'string') CFG.discordAvatar = body.discordAvatar.trim();
     if (body.discordInsecure !== undefined) CFG.discordInsecure = !!body.discordInsecure;
+    if (body.operatorsEnabled !== undefined) CFG.operatorsEnabled = !!body.operatorsEnabled;
     discord.configure(CFG);
     if (CFG.from !== oldFrom) mailer.configure(CFG);
     const persisted = saveConfigFile();
@@ -537,6 +540,10 @@ async function handle(req, res) {
     }
 
     if (action === 'handoff' && req.method === 'POST') {
+      if (CFG.operatorsEnabled === false) {
+        logChat('handoff_blocked', chatId, { email: chat.email });
+        return json(res, 400, { error: 'operators_disabled' });
+      }
       chat.status = 'human';
       chat.lastSeen = now();
       chat.messages.push({ id: store.genId('m'), role: 'system', text: 'Чат передан оператору', ts: now() });
@@ -572,6 +579,7 @@ async function handle(req, res) {
 
     if (action === 'reply' && req.method === 'POST') {
       if (!adminGuard(req, res)) return;
+      if (CFG.operatorsEnabled === false) return json(res, 400, { error: 'operators_disabled' });
       const body = await readBody(req);
       const text = String(body.text || '').trim().slice(0, 2000);
       if (!text) return json(res, 400, { error: 'empty reply' });

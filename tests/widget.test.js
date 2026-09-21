@@ -25,6 +25,7 @@ let lastResolve = null;
 const chatMode = {};
 const sseClients = Object.create(null);
 let ollamaDown = false;
+let operatorsOff = false;
 
 function pushEvent(chatId, event, data) {
   const payload = 'event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n';
@@ -112,6 +113,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (u.pathname === '/noop') {
+    const html = indexHtml.replace("model: 'qwen2.5:3b'", "backend: 'http://localhost:11434',\n  askEmail: false,\n  siteName: 'NoOp'");
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
+    return;
+  }
+
   if (u.pathname === '/checkin') {
     const html = indexHtml.replace("model: 'qwen2.5:3b'", "backend: 'http://localhost:11434',\n  askEmail: false,\n  siteName: 'GadgetHub',\n  checkinAfter: 1");
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -130,7 +138,8 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       lastInit = JSON.parse(body);
       if (!chatMode[lastInit.chatId]) chatMode[lastInit.chatId] = 'ai';
-      jsonRes(res, 200, { ok: true, chatId: lastInit.chatId });
+      if (operatorsOff) chatMode[lastInit.chatId] = 'ai';
+      jsonRes(res, 200, { ok: true, chatId: lastInit.chatId, operatorsEnabled: !operatorsOff });
     });
     return;
   }
@@ -446,6 +455,45 @@ async function main() {
   }, { timeout: 10000 });
   check('ответ оператора приходит через SSE', true);
   check('нет ошибок в консоли', pageErrors.length === 0, pageErrors.join('; '));
+
+  // ---------- Тест 8b: операторы выключены (режим только ИИ) ----------
+  console.log('\n== Тест 8b: операторы выключены (только ИИ) ==');
+  operatorsOff = true;
+  const h0 = lastHandoff;
+  await page.goto(base() + '/noop', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.shadowRoot && !!host.shadowRoot.querySelector('.fab');
+  });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.getAttribute('data-noop') !== null;
+  }, { timeout: 8000 });
+  const noopUi = await page.evaluate(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    host.shadowRoot.querySelector('.fab').click();
+    return {
+      attr: host.getAttribute('data-noop'),
+      footDisplay: window.getComputedStyle(host.shadowRoot.querySelector('.foot')).display
+    };
+  });
+  check('init отключил операторов → хост с data-noop', noopUi.attr !== null, noopUi.attr);
+  check('кнопки оператора скрыты (.foot display:none)', noopUi.footDisplay === 'none', noopUi.footDisplay);
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const input = s.querySelector('.input input');
+    input.value = 'Сколько стоят наушники?';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.b .m');
+    const last = msgs[msgs.length - 1];
+    return last && last.textContent.indexOf('ответ сервера') !== -1;
+  }, { timeout: 10000 });
+  check('ИИ продолжает отвечать при выключенных операторах', true);
+  check('handoff при отключённых операторах не отправлялся', lastHandoff === h0, lastHandoff);
+  check('нет ошибок в консоли (только ИИ)', pageErrors.length === 0, pageErrors.join('; '));
+  operatorsOff = false;
 
   // ---------- Тест 9: настроек агента в виджете больше нет ----------
   console.log('\n== Тест 9: настройки агента не в виджете (в админке) ==');

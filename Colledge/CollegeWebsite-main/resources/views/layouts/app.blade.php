@@ -87,67 +87,66 @@
     </div>
 
     
-    <div class="chat-assistant-container">
-        <div class="chat-assistant" onclick="openChatNearRobot(event)">
-            <svg viewBox="0 0 100 100">
-                <image href="{{ asset(\App\Models\PageSection::getValue('chat', 'assistant', 'robot_image_url', 'images/robot-assistant.png')) }}" width="100" height="100" preserveAspectRatio="xMidYMid meet" />
-            </svg>
-        </div>
-        <button class="robot-icon-button" onclick="openIconLink()">
-            <img src="{{ asset(\App\Models\PageSection::getValue('chat', 'assistant', 'icon_image_url', 'images/gpt1.png')) }}" alt="{{ \App\Models\PageSection::getValue('chat', 'assistant', 'icon_alt', 'ИИ помощник') }}" onerror="this.style.display='none'">
-        </button>
-    </div>
+    <button id="contactAdminBtn" class="contact-admin-fab" onclick="openContactAdmin()" aria-label="{{ \App\Models\PageSection::getValue('chat', 'window', 'fab_label', 'Связь с администратором') }}">
+        <svg class="contact-admin-fab-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+        </svg>
+        <span>{{ \App\Models\PageSection::getValue('chat', 'window', 'fab_label', 'Связь с администратором') }}</span>
+    </button>
 
     
-    <div id="chatWindow" class="chat-window">
+    <div id="chatWindow" class="chat-window contact-admin-panel" role="dialog" aria-modal="true" aria-label="{{ \App\Models\PageSection::getValue('chat', 'window', 'title', 'Связь с администратором') }}">
         <div class="chat-header">
             <div class="chat-header-content">
                 <div class="chat-avatar">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                     </svg>
                 </div>
                 <div class="chat-header-info">
-                    <h3>{{ \App\Models\PageSection::getValue('chat', 'window', 'title', 'Чат-помощник') }}</h3>
-                    <p>{{ \App\Models\PageSection::getValue('chat', 'window', 'subtitle', 'Быстро ответим на вопросы про нас') }}</p>
+                    <h3>{{ \App\Models\PageSection::getValue('chat', 'window', 'title', 'Связь с администратором') }}</h3>
+                    <p>{{ \App\Models\PageSection::getValue('chat', 'window', 'subtitle', 'Позвоните, напишите или откройте чат-поддержку') }}</p>
                 </div>
             </div>
-            <button class="chat-close-btn" onclick="closeChat()" aria-label="{{ \App\Models\PageSection::getValue('chat', 'window', 'close_label', 'Закрыть чат') }}">
+            <button class="chat-close-btn" onclick="closeContactAdmin()" aria-label="{{ \App\Models\PageSection::getValue('chat', 'window', 'close_label', 'Закрыть') }}">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
         </div>
-        
-        <div class="chat-messages" id="chatMessages">
-            <div class="chat-welcome">
-                <div class="welcome-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-                <h4>{{ \App\Models\PageSection::getValue('chat', 'welcome', 'title', 'Добро пожаловать в помощника!') }}</h4>
-                <p>{{ \App\Models\PageSection::getValue('chat', 'welcome', 'description', 'Введите ваш вопрос, и мы ответим вам в ближайшее время.') }}</p>
-                <div class="welcome-notice">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span>{{ \App\Models\PageSection::getValue('chat', 'welcome', 'notice', 'Часто ответ поступает в чат, благодаря автоматизированным ответам системы') }}</span>
+
+        <div class="contact-admin-body">
+            <div class="contact-admin-item">
+                <svg class="contact-admin-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                </svg>
+                <div>
+                    <div class="contact-admin-label">{{ \App\Models\PageSection::getValue('modals', 'contacts', 'phones_label', 'Телефоны') }}</div>
+                    <div class="contact-admin-value">
+                        <a href="tel:{{ \App\Models\PageSection::getValue('modals', 'contacts', 'phone1_number', '+77182338733') }}">{{ \App\Models\PageSection::getValue('modals', 'contacts', 'phone1_text', '(7182) 33-87-33') }}</a>
+                        <span class="sep">·</span>
+                        <a href="tel:{{ \App\Models\PageSection::getValue('modals', 'contacts', 'phone2_number', '+77182338440') }}">{{ \App\Models\PageSection::getValue('modals', 'contacts', 'phone2_text', '(7182) 33-84-40') }}</a>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="chat-input-container">
-            <input type="text" 
-                   id="chatInput" 
-                   class="chat-input" 
-                   placeholder="{{ \App\Models\PageSection::getValue('chat', 'input', 'placeholder', 'Введите сообщение...') }}"
-                   maxlength="1000"
-                   onkeypress="if(event.key === 'Enter') sendMessage()">
-            <button class="chat-send-btn" onclick="sendMessage()" aria-label="{{ \App\Models\PageSection::getValue('chat', 'input', 'send_label', 'Отправить сообщение') }}">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+
+            <div class="contact-admin-item">
+                <svg class="contact-admin-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                 </svg>
+                <div>
+                    <div class="contact-admin-label">{{ \App\Models\PageSection::getValue('modals', 'contacts', 'email_label', 'E-mail') }}</div>
+                    <div class="contact-admin-value"><a href="mailto:{{ \App\Models\PageSection::getValue('modals', 'contacts', 'email_address', 'vkeik@edu.kz') }}">{{ \App\Models\PageSection::getValue('modals', 'contacts', 'email_address', 'vkeik@edu.kz') }}</a></div>
+                </div>
+            </div>
+
+            <div class="contact-admin-note">{{ \App\Models\PageSection::getValue('chat', 'window', 'note', 'Задайте вопрос в чате — ИИ-помощник отвечает сразу на основе данных колледжа, а при необходимости подключает специалиста.') }}</div>
+
+            <button class="contact-admin-cta" onclick="closeContactAdmin(); window.AdaptiveWidget && window.AdaptiveWidget.open()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                </svg>
+                <span>{{ \App\Models\PageSection::getValue('chat', 'window', 'cta_text', 'Открыть чат с поддержкой') }}</span>
             </button>
         </div>
     </div>

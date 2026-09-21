@@ -346,6 +346,32 @@ async function main() {
   const dClear = await fetch(base + '/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ discordWebhook: '' }) }).then((r) => r.json());
   check('Discord выключается пустым webhook', dClear.discord && dClear.discord.on === false, JSON.stringify(dClear.discord));
 
+  console.log('\n== Server: отключение операторов ==');
+  const off1 = await fetch(base + '/api/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operatorsEnabled: false })
+  }).then((r) => r.json());
+  check('PUT /api/config отключил операторов', off1.operatorsEnabled === false, off1.operatorsEnabled);
+  const cfgOff = await fetch(base + '/api/config').then((r) => r.json());
+  check('GET /api/config держит operatorsEnabled=false', cfgOff.operatorsEnabled === false, cfgOff.operatorsEnabled);
+  const iniOff = await post(base + '/api/init', { chatId: 'chatNO', email: 'noop@example.com', siteName: 'NoOp', knowledge: KNOWLEDGE });
+  check('/api/init отдаёт operatorsEnabled=false', iniOff.operatorsEnabled === false, iniOff.operatorsEnabled);
+  const handoffOff = await fetch(base + '/api/chat/chatNO/handoff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+  check('handoff при выключенных операторах → 400', handoffOff.status === 400, handoffOff.status);
+  const hb = await handoffOff.json();
+  check('handoff путь возвращает operators_disabled', hb.error === 'operators_disabled', hb.error);
+  const replyOff = await fetch(base + '/api/chat/chatNO/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: 'ответ' }) });
+  check('reply при выключенных операторах → 400', replyOff.status === 400, replyOff.status);
+  const on2 = await fetch(base + '/api/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operatorsEnabled: true })
+  }).then((r) => r.json());
+  check('PUT /api/config включил операторов обратно', on2.operatorsEnabled === true, on2.operatorsEnabled);
+  const handoffOn = await post(base + '/api/chat/chatNO/handoff', {});
+  check('handoff после включения операторов работает', handoffOn.ok === true, JSON.stringify(handoffOn));
+
   server.close();
   aiMock.close();
   if (hookMock) hookMock.close();

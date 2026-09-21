@@ -2960,3 +2960,164 @@ div[id] {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* ===== Связь с администратором: кнопка + модал справа сверху ===== */
+.contact-admin-fab {
+    position: fixed;
+    top: 120px;
+    right: 0;
+    z-index: 2147480001;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 12px 0 0 12px;
+    box-shadow: -6px 10px 30px rgba(29, 78, 216, 0.3);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+.contact-admin-fab:hover {
+    transform: translateX(-2px);
+    box-shadow: -8px 12px 34px rgba(29, 78, 216, 0.42);
+}
+.contact-admin-fab-ico {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+#chatWindow.chat-window {
+    position: fixed !important;
+    top: 64px !important;
+    right: 14px !important;
+    left: auto !important;
+    bottom: auto !important;
+    width: min(360px, calc(100vw - 28px)) !important;
+    max-width: calc(100vw - 28px) !important;
+    height: auto !important;
+    max-height: calc(100vh - 84px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+    z-index: 2147480002;
+    animation: none !important;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px) scale(0.97);
+    transform-origin: top right;
+    transition: opacity .22s ease, transform .22s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow: hidden;
+}
+#chatWindow.chat-window.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+}
+#chatWindow.chat-window::before {
+    display: none !important;
+}
+
+.contact-admin-body {
+    padding: 18px 20px 20px;
+    overflow-y: auto;
+}
+.contact-admin-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 10px 0;
+}
+.contact-admin-ico {
+    width: 20px;
+    height: 20px;
+    color: #2563eb;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.contact-admin-label {
+    font-size: 12px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 3px;
+    font-weight: 600;
+}
+.contact-admin-value {
+    font-size: 15px;
+    color: #1e293b;
+    line-height: 1.4;
+}
+.contact-admin-value a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+}
+.contact-admin-value a:hover {
+    text-decoration: underline;
+}
+.contact-admin-value .sep {
+    color: #94a3b8;
+    margin: 0 6px;
+}
+.contact-admin-note {
+    margin: 12px 0 18px;
+    padding: 12px 14px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    color: #1e40af;
+    font-size: 13px;
+    line-height: 1.5;
+}
+.contact-admin-cta {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease;
+    box-shadow: 0 10px 24px rgba(29, 78, 216, 0.3);
+}
+.contact-admin-cta svg {
+    width: 18px;
+    height: 18px;
+}
+.contact-admin-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px rgba(29, 78, 216, 0.4);
+}
+
+@media (max-width: 560px) {
+    #chatWindow.chat-window {
+        top: 60px !important;
+        right: 10px !important;
+        width: calc(100vw - 20px) !important;
+        max-width: calc(100vw - 20px) !important;
+        max-height: calc(100vh - 76px) !important;
+    }
+    .contact-admin-fab {
+        top: 92px;
+        right: 0;
+        padding: 10px;
+        border-radius: 50% 0 0 50%;
+    }
+    .contact-admin-fab span {
+        display: none;
+    }
+}

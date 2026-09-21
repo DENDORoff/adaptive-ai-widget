@@ -20,7 +20,8 @@
     readImages: true,
     vision: false,
     sound: true,
-    checkinAfter: 180
+    checkinAfter: 180,
+    operatorsEnabled: true
   };
 
   var CUSTOM = window.ADAPTIVE_WIDGET || {};
@@ -105,6 +106,7 @@
     ratingDone: 'Thank you for your rating!',
     operatorBtn: 'Call an operator',
     backBtn: 'Back to AI',
+    operatorsOff: 'Operators are currently off — the AI agent answers all questions. Please clarify your question and I will keep helping.',
     checkinAsk: 'Is your question resolved?',
     checkinYes: 'Yes, resolved',
     checkinNo: 'No, I need help',
@@ -135,6 +137,7 @@
     ratingDone: 'Спасибо за вашу оценку!',
     operatorBtn: 'Позвать оператора',
     backBtn: 'Вернуть ИИ',
+    operatorsOff: 'Сейчас операторы отключены — на все вопросы отвечает только ИИ-агент. Уточните вопрос, и я продолжу помогать.',
     checkinAsk: 'Ваш вопрос решён?',
     checkinYes: 'Да, решено',
     checkinNo: 'Нет, нужна помощь',
@@ -643,6 +646,7 @@ var vpBound = false;
       '.foot .back:hover{color:' + panelText + ';border-color:' + PALETTE.primary + ';}',
       ':host([data-human]) .foot .call{display:none;}',
       ':host([data-human]) .foot .back{display:block;}',
+      ':host([data-noop]) .foot{display:none;}',
       '.dots span{display:inline-block;width:6px;height:6px;margin-right:3px;background:' + sub + ';border-radius:50%;animation:blink 1.2s infinite;}',
       '.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}',
       '@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}',
@@ -901,8 +905,19 @@ var vpBound = false;
     if (CHAT.human) cancelCheckin();
   }
 
+  function applyOperators() {
+    if (!host) return;
+    if (CONFIG.operatorsEnabled === false) host.setAttribute('data-noop', '');
+    else host.removeAttribute('data-noop');
+  }
+
   function doHandoff() {
     if (CHAT.human) return;
+    if (CONFIG.operatorsEnabled === false) {
+      addMsg(T.operatorsOff, 'bot');
+      notifyIncoming(T.operatorsOff);
+      return;
+    }
     if (!CONFIG.backend) {
       addMsg(T.offlineOperator + CONFIG.supportEmail, 'bot');
       return;
@@ -981,6 +996,13 @@ var vpBound = false;
   }
 
   function resolveNo() {
+    if (CONFIG.operatorsEnabled === false) {
+      addQuick(T.checkinNoMsg, [
+        { label: T.continueBtn, onClick: function () { CHAT.checkinPending = false; cancelCheckin(); } }
+      ]);
+      notifyIncoming(T.checkinNoMsg);
+      return;
+    }
     addQuick(T.checkinNoMsg, [
       { label: T.operatorBtn, onClick: function () { CHAT.checkinPending = false; doHandoff(); } },
       { label: T.continueBtn, onClick: function () { CHAT.checkinPending = false; cancelCheckin(); } }
@@ -1022,7 +1044,11 @@ var vpBound = false;
     }).then(function (r) {
       if (!r.ok) throw new Error();
       return r.json();
-    }).then(function () {
+    }).then(function (d) {
+      if (d && d.operatorsEnabled !== undefined) {
+        CONFIG.operatorsEnabled = !!d.operatorsEnabled;
+        applyOperators();
+      }
       connectSSE();
       statusOk('чат подключён · поддержка', '#4ade80');
       fetch(CONFIG.backend + '/api/faq').then(function (r) { if (!r.ok) throw new Error(); return r.json(); }).then(function (d) {
@@ -1224,6 +1250,7 @@ var vpBound = false;
     shadow = host.attachShadow({ mode: 'open' });
     shadow.innerHTML = '<style>' + cssText() + '</style>' + markup();
     host.style.setProperty('--pw-font', JSON.stringify(PALETTE.font));
+    applyOperators();
     wire();
     pushChips();
     if (CONFIG.autoOpen || CONFIG.teaser) {

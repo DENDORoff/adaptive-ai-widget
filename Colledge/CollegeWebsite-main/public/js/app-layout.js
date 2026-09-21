@@ -1,8 +1,3 @@
-let chatSessionId = null;
-let chatOpen = false;
-let messageCheckInterval = null;
-let chatMessagesScrollTop = 0;
-let wasAtBottom = true;
 let isDesktopBurgerOpen = false;
 
 let dropdownListenerAttached = false;
@@ -122,14 +117,6 @@ function initializeMobileMenu() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const viewportWidth = window.innerWidth;
-    if (viewportWidth < 481) {
-        chatOpen = false;
-        const chatWindow = document.getElementById('chatWindow');
-        chatWindow.classList.remove('show');
-    }
-    
-    initChat();
     checkCookies();
     
     // Инициализируем dropdown меню
@@ -137,13 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Инициализируем мобильное меню
     initializeMobileMenu();
-    
-    const chatWindow = document.getElementById('chatWindow');
-    chatWindow.addEventListener('click', (e) => {
-        if (e.target === chatWindow && window.innerWidth < 481 && chatOpen) {
-            closeChat();
-        }
-    });
     
     document.addEventListener('click', (e) => {
         const burgerMenu = document.getElementById('desktopBurgerMenu');
@@ -161,223 +141,18 @@ function checkCookies() {
     }
 }
 
-function openIconLink() {
-    window.open('https://chatgpt.com/', '_blank');
+function openContactAdmin() {
+    const modal = document.getElementById('chatWindow');
+    if (!modal) return;
+    modal.classList.add('show');
+    closeAllDropdowns();
+    closeMobileMenu();
 }
 
-async function initChat() {
-    const savedSessionId = localStorage.getItem('chat_session_id');
-    
-    const viewportWidth = window.innerWidth;
-    if (viewportWidth < 769) {
-        try {
-            const response = await fetch('/api/chat/session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    session_id: savedSessionId
-                })
-            });
-            
-            const data = await response.json();
-            chatSessionId = data.session_id;
-            localStorage.setItem('chat_session_id', chatSessionId);
-        } catch (error) {
-            console.error('Chat init error:', error);
-        }
-    } else {
-        try {
-            const response = await fetch('/api/chat/session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    session_id: savedSessionId
-                })
-            });
-            
-            const data = await response.json();
-            chatSessionId = data.session_id;
-            localStorage.setItem('chat_session_id', chatSessionId);
-            
-            await loadMessages();
-            
-        } catch (error) {
-            console.error('Chat init error:', error);
-        }
-    }
-}
-
-function openChatNearRobot(event) {
-    const chatWindow = document.getElementById('chatWindow');
-    const robotIcon = document.querySelector('.chat-assistant-container');
-    
-    const viewportWidth = window.innerWidth;
-    
-    if (viewportWidth < 481) {
-        if (!chatOpen) {
-            chatOpen = true;
-            chatWindow.classList.add('show');
-        } else {
-            chatOpen = false;
-            chatWindow.classList.remove('show');
-            if (messageCheckInterval) {
-                clearInterval(messageCheckInterval);
-                messageCheckInterval = null;
-            }
-            return;
-        }
-    } else {
-        chatOpen = true;
-        chatWindow.classList.add('show');
-    }
-    
-    if (viewportWidth < 481) {
-        chatWindow.style.position = 'fixed';
-        chatWindow.style.left = '0';
-        chatWindow.style.right = '0';
-        chatWindow.style.bottom = '0';
-        chatWindow.style.top = '0';
-        chatWindow.style.width = '100%';
-        chatWindow.style.height = '100%';
-    } else if (viewportWidth < 769) {
-        chatWindow.style.position = 'fixed';
-        chatWindow.style.left = '50%';
-        chatWindow.style.top = '50%';
-        chatWindow.style.transform = 'translate(-50%, -50%)';
-        chatWindow.style.width = '90%';
-        chatWindow.style.height = '70vh';
-    } else {
-        const chatWidth = 380;
-        const minLeftMargin = 10;
-        const maxLeftPosition = Math.max(minLeftMargin, viewportWidth - chatWidth - 20);
-        const leftPosition = Math.min(170, maxLeftPosition);
-        
-        chatWindow.style.position = 'fixed';
-        chatWindow.style.left = leftPosition + 'px';
-        chatWindow.style.right = 'auto';
-        chatWindow.style.bottom = '100px';
-        chatWindow.style.top = 'auto';
-        chatWindow.style.transform = 'none';
-        chatWindow.style.width = '380px';
-        chatWindow.style.height = '600px';
-    }
-    
-    if (chatOpen) {
-        document.getElementById('chatInput').focus();
-        loadMessages();
-        messageCheckInterval = setInterval(loadMessages, 5000);
-    }
-}
-
-function closeChat() {
-    const chatWindow = document.getElementById('chatWindow');
-    chatOpen = false;
-    chatWindow.classList.remove('show');
-    
-    if (messageCheckInterval) {
-        clearInterval(messageCheckInterval);
-        messageCheckInterval = null;
-    }
-}
-
-async function loadMessages() {
-    if (!chatSessionId) return;
-    
-    const chatMessages = document.getElementById('chatMessages');
-    const oldScrollTop = chatMessages.scrollTop;
-    const oldScrollHeight = chatMessages.scrollHeight;
-    
-    try {
-        const response = await fetch('/api/chat/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                session_id: chatSessionId
-            })
-        });
-        
-        const data = await response.json();
-        const shouldScrollToBottom = displayMessages(data.messages);
-        
-        if (!shouldScrollToBottom) {
-            chatMessages.scrollTop = oldScrollTop + (chatMessages.scrollHeight - oldScrollHeight);
-        }
-        
-    } catch (error) {
-        console.error('Load messages error:', error);
-    }
-}
-
-function displayMessages(messages) {
-    const chatMessages = document.getElementById('chatMessages');
-    const welcome = chatMessages.querySelector('.chat-welcome');
-    
-    const oldMessages = chatMessages.querySelectorAll('.chat-message');
-    oldMessages.forEach(msg => msg.remove());
-    
-    messages.forEach(message => {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `chat-message ${message.is_admin ? 'admin' : 'user'}`;
-        
-        messageDiv.innerHTML = `
-            <div class="message-bubble">
-                <div>${message.message.replace(/\n/g, '<br>')}</div>
-                <div class="message-time">${message.created_at}</div>
-            </div>
-        `;
-        
-        chatMessages.appendChild(messageDiv);
-    });
-    
-    const isNearBottom = chatMessages.scrollHeight - chatMessages.clientHeight - chatMessages.scrollTop < 100;
-    
-    if (isNearBottom) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        return true;
-    }
-    
-    return false;
-}
-
-async function sendMessage() {
-    const input = document.getElementById('chatInput');
-    const message = input.value.trim();
-    
-    if (!message || !chatSessionId) return;
-    
-    try {
-        const response = await fetch('/api/chat/send', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                session_id: chatSessionId,
-                message: message
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            input.value = '';
-            loadMessages();
-        }
-        
-    } catch (error) {
-        console.error('Send message error:', error);
-        alert('Ошибка отправки сообщения. Попробуйте позже.');
-    }
+function closeContactAdmin() {
+    const modal = document.getElementById('chatWindow');
+    if (!modal) return;
+    modal.classList.remove('show');
 }
 
 function openSituationCenterModal() {
@@ -1671,7 +1446,7 @@ document.addEventListener('DOMContentLoaded', function() {
             closeStaffSearchModal();
             closeBugReportModal();
             closeMobileMenu();
-            closeChat();
+            closeContactAdmin();
             closeDesktopBurgerMenu();
             
             navDropdowns.forEach(dropdown => {
