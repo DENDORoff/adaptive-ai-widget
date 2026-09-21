@@ -10,6 +10,7 @@ const ai = require('./lib/ai');
 const agent = require('./lib/agent');
 const kb = require('./lib/kb');
 const discord = require('./lib/discord');
+const fly = require('./lib/fly');
 
 const ADMIN_DIR = path.join(__dirname, '..', 'admin');
 const DEMO_DIR = path.join(__dirname, '..', 'demo');
@@ -36,7 +37,9 @@ function loadConfig() {
     discordUsername: 'Adaptive Widget',
     discordAvatar: '',
     discordInsecure: /^(1|true|yes)$/i.test(process.env.AW_DISCORD_INSECURE || ''),
-    operatorsEnabled: true
+    operatorsEnabled: true,
+    flyEnabled: true,
+    flyBase: process.env.AW_FLY_BASE || 'https://neuprint.janelia.org'
   };
   try {
     if (fs.existsSync(CFG_PATH)) Object.assign(def, JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')));
@@ -214,6 +217,7 @@ function publicConfig() {
     instructions: CFG.instructions || '',
     askEmail: CFG.askEmail !== undefined ? !!CFG.askEmail : true,
     operatorsEnabled: !!CFG.operatorsEnabled,
+    flyEnabled: !!CFG.flyEnabled,
     qa: (CFG.qa || []).slice(0, 200).map((x) => ({ q: x.q || '', a: x.a || '', keys: Array.isArray(x.keys) ? x.keys.slice(0, 20) : [] })),
     qaThreshold: CFG.qaThreshold,
     agentMode: CFG.agentMode,
@@ -335,7 +339,7 @@ async function handle(req, res) {
       logChat('chat_created', chatId, { email: snap.email, site: snap.siteName });
       discord.notify('chat_created', { chatId, site: snap.siteName, email: snap.email, page: snap.page });
     }
-    return json(res, 200, { ok: true, chatId, operatorsEnabled: !!CFG.operatorsEnabled });
+    return json(res, 200, { ok: true, chatId, operatorsEnabled: !!CFG.operatorsEnabled, flyEnabled: !!CFG.flyEnabled });
   }
 
   if (u.pathname === '/api/chats' && req.method === 'GET') {
@@ -362,6 +366,31 @@ async function handle(req, res) {
     computeStats().popular.forEach((p) => push(p.q, 'popular'));
     (CFG.qa || []).forEach((item) => { if (item && item.q) push(item.q, 'qa'); });
     return json(res, 200, { items: items.slice(0, 8) });
+  }
+
+  if (u.pathname === '/api/fly/status' && req.method === 'GET') {
+    return json(res, 200, await fly.status(CFG));
+  }
+
+  if (u.pathname === '/api/fly/neurons' && req.method === 'GET') {
+    return json(res, 200, { items: fly.neuronsList(), enabled: !!CFG.flyEnabled });
+  }
+
+  if (u.pathname === '/api/fly/chat' && req.method === 'POST') {
+    if (CFG.flyEnabled === false) return json(res, 400, { error: 'fly_disabled' });
+    const body = await readBody(req);
+    const q = String(body.text || '').slice(0, 2000);
+    if (!q.trim()) return json(res, 400, { error: 'empty text' });
+    const ans = await fly.chat(CFG, q);
+    return json(res, 200, { ok: true, text: ans.text, source: ans.source });
+  }
+
+  const fm = u.pathname.match(/^\/api\/fly\/neuron\/([^/]+)$/);
+  if (fm && req.method === 'GET') {
+    if (CFG.flyEnabled === false) return json(res, 400, { error: 'fly_disabled' });
+    const data = await fly.neuron(CFG, decodeURIComponent(fm[1]));
+    if (!data) return json(res, 404, { error: 'neuron not found' });
+    return json(res, 200, data);
   }
 
   if (u.pathname === '/api/instructions' && req.method === 'GET') {
@@ -448,6 +477,8 @@ async function handle(req, res) {
     if (typeof body.discordAvatar === 'string') CFG.discordAvatar = body.discordAvatar.trim();
     if (body.discordInsecure !== undefined) CFG.discordInsecure = !!body.discordInsecure;
     if (body.operatorsEnabled !== undefined) CFG.operatorsEnabled = !!body.operatorsEnabled;
+    if (body.flyEnabled !== undefined) CFG.flyEnabled = !!body.flyEnabled;
+    if (typeof body.flyBase === 'string' && body.flyBase.trim()) CFG.flyBase = body.flyBase.trim();
     discord.configure(CFG);
     if (CFG.from !== oldFrom) mailer.configure(CFG);
     const persisted = saveConfigFile();

@@ -143,4 +143,4 @@ async function answer(cfg, chat, q, instructions) {
   return { text: null, source: null };
 }
 
-module.exports = { answer, buildPrompt, findBest, contextFor, tokenize, terms, matchQA, qaSimilarity, normalize, cacheKey };
+module.exports = { answer, buildPrompt, findBest, contextFor, tokenize, terms, matchQA, qaSimilarity, normalize, cacheKey, askLLM };

@@ -284,6 +284,8 @@
       <label><input type="checkbox" id="cfg_askemail" style="width:auto;margin-right:6px"> Спрашивать email перед чатом</label>
       <label><input type="checkbox" id="cfg_operators" style="width:auto;margin-right:6px"> Операторы включены</label>
       <p class="hint">Выкл — кнопки «Позвать оператора»/«Вернуть ИИ» у клиентов скрываются, запрос оператора отклоняется, работает только ИИ-агент (админ-ответ тоже отключается).</p>
+      <label><input type="checkbox" id="cfg_fly" style="width:auto;margin-right:6px"> Вкладка «Муха» — чат и 3D-модель коннектома (эксперимент)</label>
+      <p class="hint">Альфа-фича: отдельная вкладка в виджете для клиентов — вопросы к данным коннектома мозга мухи и 3D-визуализация нейронов (NeuPrint, офлайн-справочник как запас). Выкл — вкладка полностью скрыта.</p>
       <label>Инструкции для ИИ-агента (добавляются к каждому ответу)</label>
       <textarea id="cfg_instr" placeholder="Например: всегда предлагайте скидку 10% новым клиентам"></textarea>
       <label>Вопрос-ответ (работает даже без ИИ-модели). Одна пара на строку: «Вопрос || Ответ» или «Вопрос || Ответ || ключ1, ключ2»</label>
@@ -698,6 +700,7 @@
       $('#cfg_from').value = c.from || '';
       $('#cfg_askemail').checked = !!c.askEmail;
       $('#cfg_operators').checked = c.operatorsEnabled !== false;
+      $('#cfg_fly').checked = c.flyEnabled !== false;
       applyOperatorsUI();
       $('#cfg_instr').value = c.instructions || '';
       $('#cfg_qa').value = (c.qa || []).map((x) => [x.q, x.a, (x.keys || []).join(',')].filter(Boolean).join(' || ')).join('\n');
@@ -739,6 +742,7 @@
       instructions: $('#cfg_instr').value,
       askEmail: $('#cfg_askemail').checked,
       operatorsEnabled: $('#cfg_operators').checked,
+      flyEnabled: $('#cfg_fly').checked,
       ticketTtlDays: parseInt($('#cfg_ttl').value, 10) || 0
     };
     const k = $('#cfg_apikey').value.trim();

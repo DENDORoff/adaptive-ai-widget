@@ -10,6 +10,7 @@ process.env.AW_DATA_DIR = TMP;
 process.env.AW_ENDPOINT = 'http://localhost:11999/v1/chat/completions';
 process.env.AW_MODEL = 'test-model';
 process.env.AW_CONFIG = path.join(TMP, 'config.json');
+process.env.AW_FLY_BASE = 'http://localhost:11997';
 fs.writeFileSync(process.env.AW_CONFIG, JSON.stringify({ from: 'support@deworld.su' }, null, 2));
 
 const srv = require('../server/server');
@@ -25,7 +26,9 @@ const KNOWLEDGE = [
 let aiMock;
 let aiCalls = 0;
 let hookMock;
+let flyMock;
 const webhookHits = [];
+let flyDown = false;
 let passed = 0;
 let failed = 0;
 function check(name, cond, extra) {
@@ -75,6 +78,26 @@ function startHookMock() {
   return new Promise((r) => hookMock.listen(HOOK_PORT, r));
 }
 
+function startFlyMock() {
+  flyMock = http.createServer((req, res) => {
+    if (flyDown) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end('down'); return; }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    if (req.method === 'GET' && req.url.indexOf('/api/datasets') !== -1) { res.end(JSON.stringify([{ name: 'hemibrain:v1.2.1' }])); return; }
+    if (req.method === 'POST' && req.url.indexOf('/api/cypher') !== -1) { res.end(JSON.stringify({ data: [[21000]] })); return; }
+    if (req.url.split('?')[0].indexOf('/api/trace/') === 0) {
+      res.end(JSON.stringify({ trace: { bodyId: 101, type: 'MBON(online)', nodes: [
+        { pos: { x: 1, y: 2, z: 3 } },
+        { pos: { x: 4, y: 5, z: 6 }, parent: 0 },
+        { pos: { x: 7, y: 8, z: 9 }, parent: 1 },
+        { pos: { x: 10, y: 11, z: 12 }, parent: 2 }
+      ] } }));
+      return;
+    }
+    res.end(JSON.stringify([]));
+  });
+  return new Promise((r) => flyMock.listen(11997, r));
+}
+
 function post(url, body) {
   return fetch(url, {
     method: 'POST',
@@ -100,6 +123,7 @@ async function readSseUntilReply(chatId, expectedText) {
 async function main() {
   await startAiMock();
   await startHookMock();
+  await startFlyMock();
   const server = srv.start(PORT);
 
   const base = 'http://localhost:' + PORT;
@@ -372,9 +396,43 @@ async function main() {
   const handoffOn = await post(base + '/api/chat/chatNO/handoff', {});
   check('handoff после включения операторов работает', handoffOn.ok === true, JSON.stringify(handoffOn));
 
+  console.log('\n== Server: Муха (connectome, альфа) ==');
+  const fsta = await fetch(base + '/api/fly/status').then((r) => r.json());
+  check('fly: включён по умолчанию', fsta.enabled === true, fsta.enabled);
+  check('fly: NeuPrint подключён (mock)', fsta.ok === true && fsta.dataset === 'hemibrain:v1.2.1', JSON.stringify(fsta));
+  const flyChatOut = await post(base + '/api/fly/chat', { text: 'Сколько нейронов в мозге мухи?' });
+  check('fly: чат отвечает', flyChatOut.ok === true && !!flyChatOut.text && flyChatOut.text.length > 5, JSON.stringify(flyChatOut));
+  const flyNeurons = await fetch(base + '/api/fly/neurons').then((r) => r.json());
+  check('fly: список нейронов', flyNeurons.items && flyNeurons.items.length === 5, JSON.stringify(flyNeurons).slice(0, 80));
+  const fnOnline = await fetch(base + '/api/fly/neuron/101').then((r) => r.json());
+  check('fly: реальный нейрон из NeuPrint', fnOnline.demo === false && fnOnline.type === 'MBON(online)' && fnOnline.nodeCount > 0, JSON.stringify(fnOnline).slice(0, 80));
+  const fnDemo = await fetch(base + '/api/fly/neuron/demokc1').then((r) => r.json());
+  check('fly: демо-нейрон офлайн', fnDemo.demo === true && fnDemo.nodeCount > 0 && fnDemo.points.x.length > 0, JSON.stringify(fnDemo).slice(0, 80));
+  flyDown = true;
+  const fnFall = await fetch(base + '/api/fly/neuron/999').then((r) => r.json());
+  check('fly: фолбэк на демо при недоступности NeuPrint', fnFall.demo === true && fnFall.nodeCount > 0, fnFall.demo);
+  flyDown = false;
+  await fetch(base + '/api/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ flyEnabled: false })
+  }).then((r) => r.json());
+  const iniFlyOff = await post(base + '/api/init', { chatId: 'chatFLY', email: 'f@example.com', siteName: 'Fly', knowledge: KNOWLEDGE });
+  check('fly: /api/init отдаёт flyEnabled=false', iniFlyOff.flyEnabled === false, iniFlyOff.flyEnabled);
+  const flyChatDis = await fetch(base + '/api/fly/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: 'hi' }) });
+  check('fly: чат при выключении → 400 fly_disabled', flyChatDis.status === 400, flyChatDis.status);
+  await fetch(base + '/api/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ flyEnabled: true })
+  }).then((r) => r.json());
+  const flyCatOn = await post(base + '/api/fly/chat', { text: 'про инструменты navis' });
+  check('fly: чат заработал после включения', flyCatOn.ok === true && !!flyCatOn.text, JSON.stringify(flyCatOn));
+
   server.close();
   aiMock.close();
   if (hookMock) hookMock.close();
+  if (flyMock) flyMock.close();
 
   console.log('\n==================================');
   console.log('  SERVER: ' + passed + ' passed, ' + failed + ' failed');

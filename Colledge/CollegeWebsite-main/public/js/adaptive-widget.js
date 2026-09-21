@@ -21,7 +21,9 @@
     vision: false,
     sound: true,
     checkinAfter: 180,
-    operatorsEnabled: true
+    operatorsEnabled: true,
+    flyEnabled: true,
+    flyThreeUrl: 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'
   };
 
   var CUSTOM = window.ADAPTIVE_WIDGET || {};
@@ -114,7 +116,19 @@
     continueBtn: 'Continue with AI',
     checkinThanks: 'Great! Thanks. I will be here if you need anything else.',
     resumeMsg: 'Back to the AI agent — I can answer new questions right away.',
-    resolveClose: 'The ticket is closed. Thanks for reaching out!'
+    resolveClose: 'The ticket is closed. Thanks for reaching out!',
+    tabChat: 'Chat',
+    tabFly: 'Fly · connectome',
+    flyGreeting: 'Hi! I am a chat about the digitized brain of the fruit fly (Drosophila melanogaster) — the connectome. Ask how many neurons it has, about synapses, Kenyon cells, MBON, or tools (neuprint-python, navis, Brian2). Choose a neuron below to see its 3D model.',
+    flyPlaceholder: 'Ask about the fly brain, neurons, synapses...',
+    flyNeedServer: 'The fly tab works through the support server (backend). Connect it, and the connectome chat and 3D will turn on.',
+    flyFail8: 'The connectome server is not responding right now. Try again in a moment.',
+    flyViewerLoad: 'Loading the 3D neuron model...',
+    flyViewerOk: 'Real neuron from NeuPrint. Rotate by dragging, zoom with the wheel.',
+    flyViewerDemo: 'Demo neuron (NeuPrint is offline). Rotate by dragging, zoom with the wheel.',
+    flyViewerFail: '3D rendering is not available in this environment.',
+    flyLoadBtn: 'Show',
+    flyTypesLabel: 'Type and brain region'
   } : {
     title: 'Ассистент сайта',
     status: 'отвечаю по реальным данным',
@@ -145,7 +159,19 @@
     continueBtn: 'Продолжить с ИИ',
     checkinThanks: 'Отлично! Спасибо. Если понадобится — я рядом.',
     resumeMsg: 'Возвращаюсь к ИИ-агенту — могу сразу ответить на новые вопросы.',
-    resolveClose: 'Тикет закрыт. Спасибо за обращение!'
+    resolveClose: 'Тикет закрыт. Спасибо за обращение!',
+    tabChat: 'Чат',
+    tabFly: 'Муха',
+    flyGreeting: 'Привет! Я чат про оцифрованный мозг плодовой мухи (Drosophila melanogaster) — коннектом. Спросите, сколько в нём нейронов, про синапсы, клетки Кеньона, MBON или инструменты (neuprint-python, navis, Brian2). А ниже выберите нейрон, чтобы посмотреть его 3D-модель.',
+    flyPlaceholder: 'Спросите про мозг мухи, нейроны, синапсы…',
+    flyNeedServer: 'Вкладка «Муха» работает через сервер поддержки (backend). Подключите его — и заработают чат про коннектом и 3D.',
+    flyFail8: 'Сервер коннектома сейчас не отвечает. Попробуйте чуть позже.',
+    flyViewerLoad: 'Загружаю 3D-модель нейрона…',
+    flyViewerOk: 'Реальный нейрон из NeuPrint. Вращайте перетаскиванием, масштаб — колесом.',
+    flyViewerDemo: 'Демо-нейрон (NeuPrint недоступен). Вращайте перетаскиванием, масштаб — колесом.',
+    flyViewerFail: 'В этой среде 3D-рендер недоступен.',
+    flyLoadBtn: 'Показать',
+    flyTypesLabel: 'Тип и доля нейронов'
   };
 
   var PALETTE = { primary: '#2563eb', accent: '#312e81', bg: '#ffffff', fg: '#111827', font: 'system-ui', radius: 14, dark: false, logo: '' };
@@ -650,14 +676,32 @@ var vpBound = false;
       '.dots span{display:inline-block;width:6px;height:6px;margin-right:3px;background:' + sub + ';border-radius:50%;animation:blink 1.2s infinite;}',
       '.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}',
       '@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}',
-      '.input{display:flex;gap:8px;padding:12px;border-top:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';}',
-      '.input input{flex:1;border:1px solid ' + (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)') + ';background:transparent;color:' + panelText + ';border-radius:12px;padding:10px 12px;outline:none;font-size:14px;transition:border-color .25s ease,box-shadow .25s ease;}',
-      '.input input:focus{border-color:' + PALETTE.primary + ';box-shadow:0 0 0 3px ' + hexA(PALETTE.primary, .15) + ';}',
-      '.input button{border:none;background:linear-gradient(135deg,' + PALETTE.primary + ',' + accentDark + ');color:#fff;border-radius:12px;width:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 44px;padding:0;}',
-      '.input button:hover{filter:brightness(1.08);}',
+      '.input,.finput{display:flex;gap:8px;padding:12px;border-top:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';}',
+      '.input input,.finput input{flex:1;border:1px solid ' + (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)') + ';background:transparent;color:' + panelText + ';border-radius:12px;padding:10px 12px;outline:none;font-size:14px;transition:border-color .25s ease,box-shadow .25s ease;}',
+      '.input input:focus,.finput input:focus{border-color:' + PALETTE.primary + ';box-shadow:0 0 0 3px ' + hexA(PALETTE.primary, .15) + ';}',
+      '.input button,.finput button{border:none;background:linear-gradient(135deg,' + PALETTE.primary + ',' + accentDark + ');color:#fff;border-radius:12px;width:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 44px;padding:0;}',
+      '.input button:hover,.finput button:hover{filter:brightness(1.08);}',
       '.teaser{position:fixed;' + (CONFIG.position === 'left' ? 'left:20px' : 'right:20px') + ';bottom:88px;background:' + panelBg + ';color:' + panelText + ';border-radius:16px;padding:12px 14px;max-width:280px;box-shadow:0 12px 40px rgba(0,0,0,.22);font-size:13.5px;z-index:2147482999;cursor:pointer;border:1px solid ' + (dark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.06)') + ';}',
       '.teaser b{color:' + PALETTE.primary + ';}',
-      '.teaser .x{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:none;background:' + sub + ';color:#fff;cursor:pointer;font-size:11px;line-height:1;}'
+      '.teaser .x{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:none;background:' + sub + ';color:#fff;cursor:pointer;font-size:11px;line-height:1;}',
+      '.tabs{display:flex;gap:4px;padding:6px 12px 0;border-bottom:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';}',
+      '.tab{flex:1;border:none;background:none;color:' + sub + ';font-size:13px;font-weight:600;padding:8px 6px;cursor:pointer;border-radius:10px 10px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .2s ease,background .2s ease;}',
+      '.tab:hover{color:' + panelText + ';}',
+      '.tab.on{color:' + (dark ? '#ffffff' : PALETTE.primary) + ';background:' + hexA(PALETTE.primary, .08) + ';box-shadow:inset 0 -2px 0 ' + PALETTE.primary + ';}',
+      ':host([data-nofly]) .tab[data-tab="fly"],:host([data-nofly]) .viewp[data-view="fly"]{display:none!important;}',
+      '.viewp{flex:1;min-height:0;display:flex;flex-direction:column;}',
+      '.fops{display:flex;gap:8px;padding:8px 12px;align-items:center;border-bottom:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';}',
+      '.fops select{flex:1;min-width:0;border:1px solid ' + (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)') + ';background:' + (dark ? '#2b3242' : '#ffffff') + ';color:' + panelText + ';border-radius:10px;padding:8px 10px;font-size:12.5px;outline:none;max-width:60%;}',
+      '.fops button{border:1px solid ' + hexA(PALETTE.primary, .5) + ';background:' + hexA(PALETTE.primary, .12) + ';color:' + (dark ? '#dbeafe' : PALETTE.primary) + ';border-radius:10px;padding:8px 12px;font-size:12.5px;cursor:pointer;transition:background .22s ease,transform .22s cubic-bezier(.34,1.56,.64,1);}',
+      '.fops button:hover{background:' + hexA(PALETTE.primary, .22) + ';transform:translateY(-1px);}',
+      '.fcanvas{position:relative;height:185px;border-bottom:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';background:' + (dark ? '#161a23' : '#f8fafc') + ';overflow:hidden;flex:0 0 185px;}',
+      '.fcanvas canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;}',
+      '.fph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:' + sub + ';font-size:12.5px;text-align:center;padding:0 14px;z-index:1;pointer-events:none;}',
+      '.fph .lbl{font-weight:600;color:' + panelText + ';font-size:13px;}',
+      '.fmsgs{flex:1;overflow-y:auto;padding:12px 12px 4px;scroll-behavior:smooth;}',
+      '.fmsgs .b .m{max-width:92%;}',
+      '.flybar{position:absolute;top:8px;right:8px;z-index:2;}',
+      '.flybar button{border:1px solid ' + (dark ? 'rgba(255,255,255,.18)' : 'rgba(0,0,0,.12)') + ';background:' + (dark ? '#2b3242' : '#ffffff') + ';color:' + sub + ';border-radius:8px;padding:4px 8px;font-size:11.5px;cursor:pointer;}',
     ].join('\n');
   }
 
@@ -670,10 +714,19 @@ var vpBound = false;
       '<div class="titles"><div class="t">' + T.title + '</div><div class="s">' + T.status + '</div></div>' +
       '<button class="close" aria-label="' + T.close + '">' + SVG_CLOSE + '</button>' +
       '</div>' +
+      '<div class="tabs"><button class="tab on" data-tab="chat">' + T.tabChat + '</button><button class="tab" data-tab="fly">' + T.tabFly + '</button></div>' +
+      '<div class="viewp" data-view="chat">' +
       '<div class="chips"><div class="lbl">' + T.chips + '</div><div data-chips></div></div>' +
       '<div class="msgs"></div>' +
       '<div class="foot"><button class="call" data-op>' + T.operatorBtn + '</button><button class="back" data-ai>' + T.backBtn + '</button></div>' +
       '<div class="input"><input type="text" placeholder="' + T.input + '"><button aria-label="' + T.send + '">' + SVG_SEND + '</button></div>' +
+      '</div>' +
+      '<div class="viewp fly" data-view="fly" style="display:none">' +
+      '<div class="fops"><select class="fsels" aria-label="' + T.flyTypesLabel + '"></select><button class="fload">' + T.flyLoadBtn + '</button></div>' +
+      '<div class="fcanvas"><div class="fph"><span class="lbl"></span><span class="fsub"></span></div><div class="flybar" style="display:none"></div></div>' +
+      '<div class="fmsgs"></div>' +
+      '<div class="finput"><input type="text" placeholder="' + T.flyPlaceholder + '"><button aria-label="' + T.send + '">' + SVG_SEND + '</button></div>' +
+      '</div>' +
       '</div>';
   }
 
@@ -1049,6 +1102,10 @@ var vpBound = false;
         CONFIG.operatorsEnabled = !!d.operatorsEnabled;
         applyOperators();
       }
+      if (d && d.flyEnabled !== undefined) {
+        CONFIG.flyEnabled = !!d.flyEnabled;
+        applyFly();
+      }
       connectSSE();
       statusOk('чат подключён · поддержка', '#4ade80');
       fetch(CONFIG.backend + '/api/faq').then(function (r) { if (!r.ok) throw new Error(); return r.json(); }).then(function (d) {
@@ -1091,6 +1148,202 @@ var vpBound = false;
     panelEl.classList.remove('open');
   }
 
+  function applyFly() {
+    if (!host) return;
+    if (CONFIG.flyEnabled === false) host.setAttribute('data-nofly', '');
+    else host.removeAttribute('data-nofly');
+  }
+
+  var fmsgEl = null, fcanvasEl = null, fopsSelect = null, fopsLoad = null, finpEl = null, fphLbl = null, fphSub = null;
+  var FLY = { loaded: false, threeP: null };
+
+  function addFlyMsg(text, who) {
+    var div = document.createElement('div');
+    div.className = 'b ' + (who === 'user' ? 'user' : 'bot');
+    var html;
+    if (who === 'user') {
+      html = '<div class="col" style="min-width:0"><div class="m">' + fmt(text) + '</div></div>';
+    } else {
+      html = '<div class="av">' + SVG_ICON + '</div><div class="col" style="min-width:0"><div class="name">Fly · connectome</div><div class="m">' + fmt(text) + '</div></div>';
+    }
+    div.innerHTML = html;
+    fmsgEl.appendChild(div);
+    fmsgEl.scrollTop = fmsgEl.scrollHeight;
+  }
+
+  function flyTyping(on) {
+    var d = fmsgEl.querySelector('.dots');
+    if (!on) {
+      if (d) { var b = d.closest('.b'); if (b) b.remove(); }
+      return;
+    }
+    var div = document.createElement('div');
+    div.className = 'b bot';
+    div.innerHTML = '<div class="av">' + SVG_ICON + '</div><div class="col"><div class="name">Fly · connectome</div><div class="m dots"><span></span><span></span><span></span></div></div>';
+    fmsgEl.appendChild(div);
+    fmsgEl.scrollTop = fmsgEl.scrollHeight;
+  }
+
+  function flyAsk(q) {
+    q = String(q || '').trim();
+    if (!q) return;
+    addFlyMsg(q, 'user');
+    finpEl.value = '';
+    if (!CONFIG.backend) { addFlyMsg(T.flyNeedServer, 'bot'); return; }
+    flyTyping(true);
+    fetch(CONFIG.backend + '/api/fly/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: q })
+    }).then(function (r) {
+      if (!r.ok) throw new Error();
+      return r.json();
+    }).then(function (d) {
+      flyTyping(false);
+      addFlyMsg(d && d.text ? d.text : T.flyFail8, 'bot');
+    }).catch(function () {
+      flyTyping(false);
+      addFlyMsg(T.flyFail8, 'bot');
+    });
+  }
+
+  function setPh(label, sub) {
+    if (fphLbl) fphLbl.textContent = label || '';
+    if (fphSub) fphSub.textContent = sub || '';
+  }
+
+  function openFly() {
+    if (FLY.loaded) return;
+    FLY.loaded = true;
+    addFlyMsg(T.flyGreeting, 'bot');
+    loadFlyOptions();
+  }
+
+  function loadFlyOptions() {
+    if (!fopsSelect || fopsSelect.options.length) return;
+    if (!CONFIG.backend) { setPh('', T.flyNeedServer); return; }
+    fetch(CONFIG.backend + '/api/fly/neurons').then(function (r) {
+      if (!r.ok) throw new Error();
+      return r.json();
+    }).then(function (d) {
+      if (!d || !d.items || !d.items.length) return;
+      fopsSelect.innerHTML = d.items.map(function (it) {
+        return '<option value="' + safeHtml(it.id) + '">' + safeHtml(it.type) + '</option>';
+      }).join('');
+      if (CONFIG.backend) loadFlyNeuron(fopsSelect.value);
+    }).catch(function () {});
+  }
+
+  function loadThree() {
+    if (FLY.threeP) return FLY.threeP;
+    FLY.threeP = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = CONFIG.flyThreeUrl;
+      var to = setTimeout(function () { s.remove(); reject(new Error('timeout')); }, 9000);
+      s.onload = function () { clearTimeout(to); resolve(window.THREE); };
+      s.onerror = function () { clearTimeout(to); reject(new Error('load fail')); };
+      document.head.appendChild(s);
+    });
+    return FLY.threeP;
+  }
+
+  function loadFlyNeuron(id) {
+    if (!id) return;
+    if (!CONFIG.backend) { setPh('', T.flyNeedServer); return; }
+    setPh(T.flyViewerLoad, id);
+    fetch(CONFIG.backend + '/api/fly/neuron/' + encodeURIComponent(id))
+      .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+      .then(function (data) {
+        loadThree().then(function (THREE) { drawFlyNeuron(THREE, data); })
+          .catch(function () { setPh('', T.flyViewerFail); });
+      })
+      .catch(function () { setPh('', T.flyFail8); });
+  }
+
+  function drawFlyNeuron(THREE, data) {
+    try {
+      if (!THREE || !THREE.WebGLRenderer) throw new Error('no three');
+      fcanvasEl.innerHTML = '';
+      var canvas = document.createElement('canvas');
+      fcanvasEl.appendChild(canvas);
+      var w = fcanvasEl.clientWidth || 320;
+      var h = fcanvasEl.clientHeight || 185;
+      var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(w, h);
+      var scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x10141c);
+      var cam = new THREE.PerspectiveCamera(50, w / Math.max(1, h), 0.1, 5000);
+      var pts = data.points || { x: [], y: [], z: [] };
+      var n = Math.min(pts.x.length, pts.y.length, pts.z.length);
+      var arr = [];
+      for (var i = 0; i < n; i++) arr.push(pts.x[i], pts.y[i], pts.z[i]);
+      if (arr.length < 3) throw new Error('no points');
+      var min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+      for (var j = 0; j < arr.length; j += 3) {
+        for (var k = 0; k < 3; k++) {
+          if (arr[j + k] < min[k]) min[k] = arr[j + k];
+          if (arr[j + k] > max[k]) max[k] = arr[j + k];
+        }
+      }
+      var cx = (min[0] + max[0]) / 2, cy = (min[1] + max[1]) / 2, cz = (min[2] + max[2]) / 2;
+      var span = Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2], 1);
+      var s = 70 / span;
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+      var g = new THREE.Group();
+      g.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x38bdf8, size: 1.15, sizeAttenuation: true })));
+      g.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.5 })));
+      g.scale.set(s, s, s);
+      g.position.set(-cx * s, -cy * s, -cz * s);
+      scene.add(g);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+      var dir = new THREE.DirectionalLight(0xffffff, 0.6);
+      dir.position.set(60, 80, 40);
+      scene.add(dir);
+      var rx = -0.35, ry = 0.4, zoom = 1;
+      function applyCam() {
+        cam.position.set(0, 0, 130 / zoom);
+        cam.rotation.set(rx, ry, 0, 'YXZ');
+      }
+      applyCam();
+      canvas.addEventListener('wheel', function (e) {
+        e.preventDefault();
+        zoom = Math.max(0.4, Math.min(6, zoom * (e.deltaY > 0 ? 1.08 : 0.92)));
+        applyCam();
+      }, { passive: false });
+      var drag = null;
+      canvas.addEventListener('pointerdown', function (e) { drag = { x: e.clientX, y: e.clientY }; try { canvas.setPointerCapture(e.pointerId); } catch (err) {} });
+      canvas.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        ry += (e.clientX - drag.x) * 0.01;
+        rx += (e.clientY - drag.y) * 0.01;
+        rx = Math.max(-1.5, Math.min(1.5, rx));
+        drag = { x: e.clientX, y: e.clientY };
+        applyCam();
+      });
+      canvas.addEventListener('pointerup', function () { drag = null; });
+      canvas.addEventListener('pointercancel', function () { drag = null; });
+      (function loop() {
+        renderer.render(scene, cam);
+        if (fcanvasEl.contains(canvas)) requestAnimationFrame(loop);
+      })();
+      setPh(data.demo ? T.flyViewerDemo : T.flyViewerOk, data.type ? data.type + ' · ' + (data.nodeCount || 0) + ' n' : '');
+    } catch (err) {
+      setPh('', T.flyViewerFail);
+    }
+  }
+
+  function switchTab(name) {
+    var tabs = shadow.querySelectorAll('.tab');
+    Array.prototype.forEach.call(tabs, function (t) { t.classList.toggle('on', t.getAttribute('data-tab') === name); });
+    var chatV = shadow.querySelector('.viewp[data-view="chat"]');
+    var flyV = shadow.querySelector('.viewp[data-view="fly"]');
+    if (chatV) chatV.style.display = name === 'chat' ? '' : 'none';
+    if (flyV) flyV.style.display = name === 'fly' ? '' : 'none';
+    if (name === 'fly') openFly();
+  }
+
   function wire() {
     toggleBtn = shadow.querySelector('.fab');
     teaserEl = shadow.querySelector('.teaser');
@@ -1113,6 +1366,20 @@ var vpBound = false;
       var chip = e.target.closest('.chip');
       if (chip) ask(chip.textContent);
     });
+    var tabBtns = shadow.querySelectorAll('.tab');
+    Array.prototype.forEach.call(tabBtns, function (t) { t.addEventListener('click', function () { switchTab(t.getAttribute('data-tab')); }); });
+    fmsgEl = shadow.querySelector('.fmsgs');
+    fcanvasEl = shadow.querySelector('.fcanvas');
+    fopsSelect = shadow.querySelector('.fsels');
+    fopsLoad = shadow.querySelector('.fload');
+    finpEl = shadow.querySelector('.finput input');
+    var fsend = shadow.querySelector('.finput button');
+    fphLbl = shadow.querySelector('.fph .lbl');
+    fphSub = shadow.querySelector('.fph .fsub');
+    if (fsend) fsend.addEventListener('click', function () { flyAsk(finpEl.value); });
+    if (finpEl) finpEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') flyAsk(finpEl.value); });
+    if (fopsSelect) fopsSelect.addEventListener('change', function () { loadFlyNeuron(fopsSelect.value); });
+    if (fopsLoad) fopsLoad.addEventListener('click', function () { if (fopsSelect && fopsSelect.value) loadFlyNeuron(fopsSelect.value); });
     var opBtn = shadow.querySelector('[data-op]');
     if (opBtn) opBtn.addEventListener('click', doHandoff);
     var aiBtn = shadow.querySelector('[data-ai]');
@@ -1251,6 +1518,7 @@ var vpBound = false;
     shadow.innerHTML = '<style>' + cssText() + '</style>' + markup();
     host.style.setProperty('--pw-font', JSON.stringify(PALETTE.font));
     applyOperators();
+    applyFly();
     wire();
     pushChips();
     if (CONFIG.autoOpen || CONFIG.teaser) {

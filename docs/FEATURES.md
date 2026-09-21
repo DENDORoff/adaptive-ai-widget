@@ -176,3 +176,12 @@ window.AdaptiveWidget.open();                       // открыть / close() 
 | `discordWebhook` | `''` (выкл) | админка / `server/config.json` / `AW_DISCORD_WEBHOOK` |
 | `discordInsecure` | `false` | админка / `server/config.json` / `AW_DISCORD_INSECURE` |
 | `operatorsEnabled` | `true` | админка (Настройки → Операторы) / `server/config.json` |
+| `flyEnabled` | `true` | админка (Настройки → Вкладка «Муха») / `server/config.json` |
+| `flyBase` | `https://neuprint.janelia.org` | `server/config.json` / `AW_FLY_BASE` |
+
+## 12. Эксперимент: вкладка «Муха» — чат и 3D коннектома
+
+- Отдельная вкладка в виджете: **чат** с оцифрованным мозгом плодовой мухи и **3D-визуализация** нейронов (three.js, подгружается только при открытии вкладки, при недоступности — статус-плейсхолдер без падения).
+- Данные берёт сервер: живые запросы к **NeuPrint** (`neuprint.janelia.org`, ключ `flyBase`) через прокси: `/api/fly/status`, `/api/fly/chat`, `/api/fly/neurons`, `/api/fly/neuron/:id`.
+- Если NeuPrint недоступен — офлайн-справочник (`server/lib/fly.js`): базовые факты (гемибрейн ~21,6 тыс. нейронов и ~14 млн синапсов, полный мозг 2024 — ~139 тыс.) и демо-нейроны (KC, MBON, DAN, PN, фоторецептор) с генерацией 3D-координат.
+- Управление: `flyEnabled` (по умолчанию `true`) в админке полностью скрывает вкладку; флаг приходит виджету через `/api/init` (`data-nofly`).

@@ -26,6 +26,8 @@ const chatMode = {};
 const sseClients = Object.create(null);
 let ollamaDown = false;
 let operatorsOff = false;
+let flyOff = false;
+let lastFlyChat = null;
 
 function pushEvent(chatId, event, data) {
   const payload = 'event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n';
@@ -139,13 +141,41 @@ const server = http.createServer((req, res) => {
       lastInit = JSON.parse(body);
       if (!chatMode[lastInit.chatId]) chatMode[lastInit.chatId] = 'ai';
       if (operatorsOff) chatMode[lastInit.chatId] = 'ai';
-      jsonRes(res, 200, { ok: true, chatId: lastInit.chatId, operatorsEnabled: !operatorsOff });
+      jsonRes(res, 200, { ok: true, chatId: lastInit.chatId, operatorsEnabled: !operatorsOff, flyEnabled: !flyOff });
     });
     return;
   }
 
   if (u.pathname === '/api/faq' && req.method === 'GET') {
     jsonRes(res, 200, { items: [{ q: 'Сколько стоят наушники Aurora X?', source: 'qa' }] });
+    return;
+  }
+
+  if (u.pathname === '/api/fly/neurons' && req.method === 'GET') {
+    jsonRes(res, 200, { items: [
+      { id: 'demokc1', type: 'Клетка Кеньона (KC)' },
+      { id: 'demombon1', type: 'MBON (выход грибовидного тела)' },
+      { id: 'demopn1', type: 'Проекционный нейрон (PN)' }
+    ] });
+    return;
+  }
+
+  if (u.pathname === '/api/fly/chat' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (c) => (body += c));
+    req.on('end', () => {
+      lastFlyChat = JSON.parse(body);
+      jsonRes(res, 200, { ok: true, text: 'Муха отвечает: в гемибрейне ~21 662 нейрона и ~14 млн синапсов.', source: 'offline' });
+    });
+    return;
+  }
+
+  const flyN = u.pathname.match(/^\/api\/fly\/neuron\/([^/]+)$/);
+  if (flyN && req.method === 'GET') {
+    jsonRes(res, 200, {
+      id: decodeURIComponent(flyN[1]), type: 'Клетка Кеньона (KC)', demo: false, nodeCount: 3,
+      points: { x: [1, 4, 7], y: [2, 5, 8], z: [3, 6, 9] }, links: { connectTo: [], linkedNodes: [] }, info: 'mock'
+    });
     return;
   }
 
@@ -494,6 +524,74 @@ async function main() {
   check('handoff при отключённых операторах не отправлялся', lastHandoff === h0, lastHandoff);
   check('нет ошибок в консоли (только ИИ)', pageErrors.length === 0, pageErrors.join('; '));
   operatorsOff = false;
+
+  // ---------- Тест 8c: вкладка «Муха» (коннектом) ----------
+  console.log('\n== Тест 8c: вкладка «Муха» (коннектом) ==');
+  flyOff = false;
+  await page.goto(base() + '/noop', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.shadowRoot && !!host.shadowRoot.querySelector('.fab') && !!host.shadowRoot.querySelector('.tab[data-tab="fly"]');
+  });
+  const flyTabs = await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    return {
+      chat: s.querySelector('.tab[data-tab="chat"]').textContent.trim(),
+      fly: s.querySelector('.tab[data-tab="fly"]').textContent.trim(),
+      nofly: document.querySelector('[data-adaptive-widget]').getAttribute('data-nofly')
+    };
+  });
+  check('вкладка «Муха» видна, data-nofly нет', flyTabs.fly !== '' && flyTabs.nofly === null, JSON.stringify(flyTabs));
+  await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    s.querySelector('.fab').click();
+    s.querySelector('.tab[data-tab="fly"]').click();
+  });
+  await page.waitForFunction(() => {
+    const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.fmsgs .m');
+    return Array.from(msgs).some((m) => m.textContent.indexOf('коннектом') !== -1 || m.textContent.indexOf('connectome') !== -1);
+  }, { timeout: 10000 });
+  check('приветствие Мухи в своей вкладке', true);
+  const flyView = await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    s.querySelector('.finput input').value = 'Сколько нейронов?';
+    s.querySelector('.finput input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const msgs = document.querySelector('[data-adaptive-widget]').shadowRoot.querySelectorAll('.fmsgs .m');
+    const last = msgs[msgs.length - 1];
+    return last && last.textContent.indexOf('Муха отвечает') !== -1;
+  }, { timeout: 10000 });
+  check('вопрос уходит в /api/fly/chat', !!lastFlyChat && lastFlyChat.text === 'Сколько нейронов?', lastFlyChat && lastFlyChat.text);
+  check('ответ Мухи показан в виджете', true);
+  await page.waitForFunction(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const v = s.querySelector('.fcanvas');
+    if (!v) return false;
+    const ph = s.querySelector('.fph');
+    return !!v.querySelector('canvas') || (ph && ph.textContent.trim() !== '');
+  }, { timeout: 15000 });
+  check('3D-вьювер отрисован или показал статус', true);
+  const flyOpts = await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    return s.querySelector('.fsels').options.length;
+  });
+  check('список нейронов в селекте', flyOpts === 3, flyOpts);
+
+  console.log('\n== Тест 8d: вкладка «Муха» выключена из админки ==');
+  flyOff = true;
+  await page.goto(base() + '/noop', { waitUntil: 'networkidle2' });
+  await page.waitForFunction(() => {
+    const host = document.querySelector('[data-adaptive-widget]');
+    return host && host.getAttribute('data-nofly') !== null;
+  }, { timeout: 8000 });
+  const flyHidden = await page.evaluate(() => {
+    const s = document.querySelector('[data-adaptive-widget]').shadowRoot;
+    const tab = s.querySelector('.tab[data-tab="fly"]');
+    return { attr: document.querySelector('[data-adaptive-widget]').getAttribute('data-nofly'), display: tab ? getComputedStyle(tab).display : 'none' };
+  });
+  check('init выключил мух → data-nofly, вкладка скрыта', flyHidden.attr !== null && flyHidden.display === 'none', JSON.stringify(flyHidden));
+  flyOff = false;
 
   // ---------- Тест 9: настроек агента в виджете больше нет ----------
   console.log('\n== Тест 9: настройки агента не в виджете (в админке) ==');
