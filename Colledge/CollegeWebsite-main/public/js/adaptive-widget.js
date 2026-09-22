@@ -37,6 +37,9 @@
   if (!CONFIG.siteName) {
     CONFIG.siteName = (document.title || '').split(/[|—–]/)[0].trim() || 'Сайт';
   }
+  if (!CONFIG.backend && CONFIG.endpoint && /\/api(\/|$)/.test((CONFIG.endpoint.trim() || ''))) {
+    CONFIG.backend = CONFIG.endpoint.trim();
+  }
 
   var DEFAULT_ENDPOINT = DEFAULTS.endpoint;
   var PROVIDERS = {
@@ -1110,6 +1113,10 @@ var vpBound = false;
         CONFIG.flyEnabled = !!d.flyEnabled;
         applyFly();
       }
+      if (d && d.askEmail !== undefined) {
+        CONFIG.askEmail = d.askEmail === true ? 'optional' : false;
+      }
+      try { LS.set('pw_cfg', JSON.stringify({ operatorsEnabled: !!CONFIG.operatorsEnabled, flyEnabled: !!CONFIG.flyEnabled })); } catch (e) {}
       connectSSE();
       statusOk('чат подключён · поддержка', '#4ade80');
       fetch(CONFIG.backend + '/api/faq').then(function (r) { if (!r.ok) throw new Error(); return r.json(); }).then(function (d) {
@@ -1156,6 +1163,40 @@ var vpBound = false;
     if (!host) return;
     if (CONFIG.flyEnabled === false) host.setAttribute('data-nofly', '');
     else host.removeAttribute('data-nofly');
+  }
+
+  function cacheFlags() {
+    try {
+      var c = LS.get('pw_cfg');
+      if (!c) return;
+      var o = JSON.parse(c);
+      if (o && typeof o === 'object') {
+        if (o.operatorsEnabled !== undefined) CONFIG.operatorsEnabled = !!o.operatorsEnabled;
+        if (o.flyEnabled !== undefined) CONFIG.flyEnabled = !!o.flyEnabled;
+      }
+    } catch (e) {}
+  }
+
+  // Сервер поддержки — источник истины для настроек. Локальный кэш используется
+  // только как офлайн-фолбэк, когда сервер недоступен.
+  function syncFlags() {
+    if (!CONFIG.backend) { cacheFlags(); applyOperators(); applyFly(); return; }
+    fetch(CONFIG.backend + '/api/flags', { method: 'GET', cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error();
+      return r.json();
+    }).then(function (d) {
+      if (!d || typeof d !== 'object') throw new Error();
+      if (d.operatorsEnabled !== undefined) CONFIG.operatorsEnabled = !!d.operatorsEnabled;
+      if (d.flyEnabled !== undefined) CONFIG.flyEnabled = !!d.flyEnabled;
+      if (d.askEmail !== undefined) CONFIG.askEmail = d.askEmail === true ? 'optional' : false;
+      applyOperators();
+      applyFly();
+      try { LS.set('pw_cfg', JSON.stringify({ operatorsEnabled: !!CONFIG.operatorsEnabled, flyEnabled: !!CONFIG.flyEnabled })); } catch (e) {}
+    }).catch(function () {
+      cacheFlags();
+      applyOperators();
+      applyFly();
+    });
   }
 
   var fmsgEl = null, fcanvasEl = null, fopsSelect = null, fopsLoad = null, finpEl = null, fphLbl = null, fphSub = null;
@@ -1553,6 +1594,7 @@ var vpBound = false;
       return;
     }
     buildUI();
+    syncFlags();
   }
 
   if (document.readyState === 'loading') {

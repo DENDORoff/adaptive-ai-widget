@@ -39,7 +39,10 @@ function loadConfig() {
     discordInsecure: /^(1|true|yes)$/i.test(process.env.AW_DISCORD_INSECURE || ''),
     operatorsEnabled: true,
     flyEnabled: true,
-    flyBase: process.env.AW_FLY_BASE || 'https://neuprint.janelia.org'
+    flyBase: process.env.AW_FLY_BASE || 'https://neuprint.janelia.org',
+    siteUrl: process.env.AW_SITE_URL || 'http://127.0.0.1:8000',
+    siteToken: process.env.AW_SITE_TOKEN || '',
+    siteName: process.env.AW_SITE_NAME || ''
   };
   try {
     if (fs.existsSync(CFG_PATH)) Object.assign(def, JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')));
@@ -283,6 +286,42 @@ function adminGuard(req, res) {
   return true;
 }
 
+function widgetOnline() {
+  const out = [];
+  const cuf = Date.now();
+  Object.keys(store.getChats()).forEach((id) => {
+    const c = store.getChat(id);
+    if (!c || c.status === 'closed') return;
+    const t = typeof c.updatedAt === 'string' ? new Date(c.updatedAt).getTime() : 0;
+    if (t && cuf - t < 10 * 60 * 1000) out.push({ id, siteName: c.siteName || '', page: c.page || '', updatedAt: c.updatedAt });
+  });
+  out.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+  return { total: out.length, chats: out };
+}
+
+async function proxySite(req, res, u) {
+  const sub = u.pathname.slice('/api/site'.length) || '/';
+  const dest = (CFG.siteUrl || 'http://127.0.0.1:8000') + '/api/site' + sub + u.search;
+  let body;
+  if (req.method === 'POST' || req.method === 'PUT') body = JSON.stringify(await readBody(req));
+  try {
+    const up = await fetch(dest, {
+      method: req.method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Site-Token': CFG.siteToken || ''
+      },
+      body
+    });
+    const text = await up.text();
+    res.writeHead(up.status, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(text);
+  } catch (e) {
+    json(res, 502, { ok: false, error: 'site_unreachable', detail: String(e && e.message || e) });
+  }
+}
+
 async function handle(req, res) {
   const u = new URL(req.url, 'http://localhost');
 
@@ -339,7 +378,17 @@ async function handle(req, res) {
       logChat('chat_created', chatId, { email: snap.email, site: snap.siteName });
       discord.notify('chat_created', { chatId, site: snap.siteName, email: snap.email, page: snap.page });
     }
-    return json(res, 200, { ok: true, chatId, operatorsEnabled: !!CFG.operatorsEnabled, flyEnabled: !!CFG.flyEnabled });
+    return json(res, 200, { ok: true, chatId, operatorsEnabled: !!CFG.operatorsEnabled, flyEnabled: !!CFG.flyEnabled, askEmail: CFG.askEmail === true, aiEnabled: CFG.aiEnabled !== false });
+  }
+
+  if (u.pathname === '/api/flags' && req.method === 'GET') {
+    return json(res, 200, {
+      ok: true,
+      operatorsEnabled: !!CFG.operatorsEnabled,
+      flyEnabled: !!CFG.flyEnabled,
+      askEmail: CFG.askEmail === true,
+      aiEnabled: CFG.aiEnabled !== false
+    });
   }
 
   if (u.pathname === '/api/chats' && req.method === 'GET') {
@@ -391,6 +440,36 @@ async function handle(req, res) {
     const data = await fly.neuron(CFG, decodeURIComponent(fm[1]));
     if (!data) return json(res, 404, { error: 'neuron not found' });
     return json(res, 200, data);
+  }
+
+  if (u.pathname === '/api/site/overview' && req.method === 'GET') {
+    if (!adminGuard(req, res)) return;
+    return proxySite(req, res, u);
+  }
+
+  if (u.pathname === '/api/site/widget/online' && req.method === 'GET') {
+    if (!adminGuard(req, res)) return;
+    return json(res, 200, widgetOnline());
+  }
+
+  if (u.pathname === '/api/site/online' && req.method === 'GET') {
+    if (!adminGuard(req, res)) return;
+    return proxySite(req, res, u);
+  }
+
+  if (u.pathname === '/api/site/cache/clear' && req.method === 'POST') {
+    if (!adminGuard(req, res)) return;
+    return proxySite(req, res, u);
+  }
+
+  if (u.pathname.startsWith('/api/site/news') && (req.method === 'GET' || req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE')) {
+    if (!adminGuard(req, res)) return;
+    return proxySite(req, res, u);
+  }
+
+  if (u.pathname.startsWith('/api/site/sections')) {
+    if (!adminGuard(req, res)) return;
+    return proxySite(req, res, u);
   }
 
   if (u.pathname === '/api/instructions' && req.method === 'GET') {

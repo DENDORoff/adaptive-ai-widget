@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'livewire/upload-file',
             'livewire/*',
             'api/chat/*',
+            'api/site/*',
         ]);
 
 
@@ -45,6 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.ip' => \App\Http\Middleware\RestrictAdminAccess::class,
             'honeypot' => \App\Http\Middleware\HoneypotProtection::class,
             'spam.protection' => \App\Http\Middleware\FormSpamProtection::class,
+            'site.token' => \App\Http\Middleware\SiteAdminToken::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

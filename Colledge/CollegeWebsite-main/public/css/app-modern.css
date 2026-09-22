@@ -1,0 +1,322 @@
+/* ============================================================
+   Высший колледж электроники и коммуникации — модерн-слой
+   Загружается ПОСЛЕ app-layout.css, переопределяет базовые стили.
+   ============================================================ */
+
+:root {
+    --vkeik-bg: #f6f8fc;
+    --vkeik-ink: #0f172a;
+    --vkeik-brand: #2563eb;
+    --vkeik-brand2: #7c3aed;
+    --vkeik-cyan: #06b6d4;
+    --vkeik-grad: linear-gradient(120deg, #3b82f6 0%, #8b5cf6 55%, #06b6d4 110%);
+    --vkeik-grad-soft: linear-gradient(120deg, rgba(59, 130, 246, .12), rgba(139, 92, 246, .12));
+    --vkeik-shadow: 0 10px 34px rgba(30, 58, 138, .14);
+    --vkeik-shadow-lg: 0 22px 60px rgba(30, 58, 138, .20);
+    --vkeik-radius: 18px;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background-color: var(--vkeik-bg);
+    background-image:
+        radial-gradient(1200px 500px at 85% -10%, rgba(139, 92, 246, .14), transparent 60%),
+        radial-gradient(1000px 460px at -10% 20%, rgba(6, 182, 212, .12), transparent 60%),
+        radial-gradient(900px 520px at 50% 110%, rgba(59, 130, 246, .12), transparent 60%);
+    background-attachment: fixed;
+    color: var(--vkeik-ink);
+    font-family: "Segoe UI", Inter, ui-sans-serif, system-ui, -apple-system, Roboto, sans-serif;
+    letter-spacing: .01em;
+    -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+    background: rgba(124, 58, 237, .25);
+}
+
+/* ---------- скроллбар ---------- */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: linear-gradient(160deg, #a5b4fc, #c4b5fd); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(160deg, #818cf8, #a78bfa); border: 3px solid transparent; background-clip: padding-box; }
+
+/* ---------- фокус-кольца ---------- */
+:focus-visible {
+    outline: 2px solid var(--vkeik-brand2);
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+
+/* ============================================================
+   Шапка
+   ============================================================ */
+
+/* сам навбар: стеклянный */
+header.bg-white.sticky.top-0 {
+    background: rgba(255, 255, 255, .82) !important;
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    border-bottom: 1px solid rgba(148, 163, 184, .22) !important;
+    box-shadow: 0 12px 34px rgba(15, 23, 42, .08);
+    transition: box-shadow .25s ease;
+}
+
+/* ссылки меню: подчёркивание-градиент */
+.nav-link {
+    position: relative;
+    font-weight: 600;
+    color: #1e293b !important;
+    border-radius: 10px;
+    transition: color .18s ease, transform .18s ease;
+}
+.nav-link:hover {
+    color: var(--vkeik-brand) !important;
+    transform: translateY(-1px);
+}
+.nav-link::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 2px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--vkeik-grad);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .22s ease;
+}
+.nav-link:hover::after { transform: scaleX(1); }
+
+.dropdown-menu {
+    border-radius: 16px !important;
+    box-shadow: var(--vkeik-shadow-lg) !important;
+    border: 1px solid rgba(148, 163, 184, .25) !important;
+    padding: 8px !important;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, .96) !important;
+}
+.dropdown-menu a,
+.dropdown-menu button {
+    border-radius: 10px !important;
+}
+.dropdown-menu a:hover,
+.dropdown-menu button:hover {
+    background: var(--vkeik-grad-soft) !important;
+    color: #1d4ed8 !important;
+}
+
+.language-btn {
+    border-radius: 999px !important;
+    font-weight: 700 !important;
+    letter-spacing: .04em;
+}
+.language-btn.active {
+    background: #2563eb !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, .35);
+}
+
+.social-icon {
+    transition: transform .2s ease, filter .2s ease;
+}
+.social-link:hover .social-icon {
+    transform: translateY(-2px) scale(1.08);
+    filter: drop-shadow(0 4px 8px rgba(59, 130, 246, .45));
+}
+
+/* ============================================================
+   Герой
+   ============================================================ */
+.hero-section .gradient-overlay {
+    background: linear-gradient(160deg, rgba(7, 15, 40, .78) 0%, rgba(30, 27, 75, .55) 45%, rgba(6, 18, 60, .82) 100%) !important;
+}
+.hero-section h1 {
+    text-shadow: 0 6px 30px rgba(2, 6, 23, .55);
+    letter-spacing: -.01em;
+    background: linear-gradient(90deg, #ffffff, #e0e7ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+    padding-bottom: 4px;
+}
+
+.btn { border-radius: 14px !important; }
+.btn-primary {
+    background: #2563eb !important;
+    box-shadow: 0 8px 22px rgba(37, 99, 235, .28);
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.btn-primary:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.06);
+    box-shadow: 0 12px 28px rgba(37, 99, 235, .38);
+}
+.btn-secondary {
+    background: rgba(15, 23, 42, .55) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, .22) !important;
+}
+.btn-secondary:hover {
+    background: rgba(15, 23, 42, .75) !important;
+    transform: translateY(-2px);
+}
+
+.hero-card {
+    background: rgba(255, 255, 255, .09) !important;
+    border: 1px solid rgba(255, 255, 255, .18) !important;
+    backdrop-filter: blur(12px);
+    border-radius: 18px !important;
+}
+.hero-card:hover {
+    background: rgba(255, 255, 255, .14) !important;
+    box-shadow: 0 18px 40px rgba(2, 6, 23, .45);
+}
+
+/* ============================================================
+   Секции и карточки
+   ============================================================ */
+
+/* акцентные плашки в названиях секций */
+.bg-blue-500.rounded-full { box-shadow: 0 0 0 6px rgba(59, 130, 246, .18); }
+
+/* новостные карточки: мягкое свечение при наведении */
+.news-card-glow {
+    transition: box-shadow .35s ease !important;
+}
+.news-card-glow:hover {
+    box-shadow: 0 24px 60px rgba(59, 130, 246, .28) !important;
+}
+
+/* ============================================================
+   Футер
+   ============================================================ */
+footer.bg-gray-950 {
+    background: radial-gradient(1000px 480px at 20% -10%, rgba(59, 130, 246, .18), transparent 60%),
+        radial-gradient(900px 420px at 90% 0%, rgba(139, 92, 246, .14), transparent 60%),
+        linear-gradient(180deg, #0b1220 0%, #030712 100%) !important;
+    border-top: 1px solid rgba(148, 163, 184, .14);
+}
+footer h3 {
+    letter-spacing: .06em;
+}
+footer .uppercase {
+    background: linear-gradient(90deg, #c7d2fe, #a5b4fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+}
+footer .text-gray-500,
+footer .text-gray-600 { color: #8ea0bf !important; }
+footer a:hover {
+    color: #93c5fd !important;
+}
+
+/* компактные колонки-плашки внизу сайта */
+.footer-btns li button,
+.footer-btns li a {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    color: #94a3b8;
+    transition: color .18s ease, transform .18s ease;
+}
+.footer-btns li button svg,
+.footer-btns li a svg {
+    width: 1rem;
+    height: 1rem;
+    color: #60a5fa;
+    flex-shrink: 0;
+}
+.footer-btns li button:hover,
+.footer-btns li a:hover {
+    color: #93c5fd;
+    transform: translateX(2px);
+}
+
+/* нижняя полоса: соцсети · языки · погода */
+.footer-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem 2rem;
+    padding-bottom: 1.75rem;
+    border-bottom: 1px solid rgba(148, 163, 184, .12);
+    margin-bottom: 1.75rem;
+}
+.footer-strip .social-link {
+    display: inline-flex;
+    width: 2.1rem;
+    height: 2.1rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .1);
+    color: #cbd5e1;
+    transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+.footer-strip .social-link:hover {
+    background: #2563eb;
+    color: #fff;
+    transform: translateY(-2px);
+}
+.footer-strip .social-link .social-icon {
+    width: 1rem;
+    height: 1rem;
+}
+.footer-strip .langs {
+    display: inline-flex;
+    gap: .4rem;
+}
+.footer-strip .langs .language-btn {
+    padding: .3rem .85rem;
+    font-size: .72rem;
+    border-radius: 999px;
+    color: #cbd5e1;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .12);
+    letter-spacing: .06em;
+    transition: background .18s ease, color .18s ease;
+}
+.footer-strip .langs .language-btn:hover {
+    background: rgba(37, 99, 235, .35);
+    color: #fff;
+}
+.footer-strip .langs .language-btn.active {
+    background: #2563eb;
+    color: #fff;
+}
+.footer-strip .weather-widget-container {
+    display: inline-flex;
+}
+
+/* ============================================================
+   Плашки / кнопки на остальном сайте
+   ============================================================ */
+button, .btn, a[class*="btn"] {
+    transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+
+/* ============================================================
+   Анимация появления при скролле
+   ============================================================ */
+.js-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity .6s cubic-bezier(.22, .68, 0, 1), transform .6s cubic-bezier(.22, .68, 0, 1);
+}
+.js-reveal.in {
+    opacity: 1;
+    transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .js-reveal { opacity: 1; transform: none; transition: none; }
+    ::-webkit-scrollbar-thumb { background: #a5b4fc; }
+}

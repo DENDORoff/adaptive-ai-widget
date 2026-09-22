@@ -121,6 +121,101 @@
   .smtp-status.off { background: rgba(148,163,184,.12); color: var(--sub); }
   fieldset { border: 1px solid var(--line); border-radius: 12px; margin: 12px 0; padding: 12px 14px; }
   legend { font-size: 12px; color: var(--sub); padding: 0 6px; }
+  .mlrow { margin-bottom: 10px; }
+  .mlhead { font-size: 11.5px; color: var(--sub); margin-bottom: 4px; font-family: ui-monospace, Consolas, monospace; }
+  .mlgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mlgrid label { font-size: 10.5px; color: var(--sub); display: block; margin-bottom: 3px; }
+  .mlgrid textarea { width: 100%; min-height: 54px; resize: vertical; font-size: 12.5px; }
+  @media (max-width: 760px) { .mlgrid { grid-template-columns: 1fr; } }
+  .split { display: flex; gap: 14px; }
+  .split > div { flex: 1; min-width: 0; }
+  /* ============ REDESIGN OVERLAY ============ */
+  @keyframes awAurora { 0%,100% { transform: translate(-6%, -4%) scale(1); } 50% { transform: translate(6%, 4%) scale(1.12); } }
+  @keyframes awFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes awPop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+  @keyframes awSheen { 0% { transform: translateX(-130%) skewX(-18deg); } 60%,100% { transform: translateX(230%) skewX(-18deg); } }
+  @keyframes awShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+  @keyframes awRipple { from { box-shadow: 0 0 0 0 rgba(99,102,241,.55); } to { box-shadow: 0 0 0 14px rgba(99,102,241,0); } }
+
+  body { position: relative; overflow-x: hidden; }
+  body::before, body::after {
+    content: ""; position: fixed; width: 640px; height: 640px; border-radius: 50%;
+    filter: blur(110px); opacity: .16; z-index: 0; pointer-events: none; animation: awAurora 18s ease-in-out infinite;
+  }
+  body::before { background: #6366f1; top: -220px; left: -140px; }
+  body::after { background: #a855f7; bottom: -260px; right: -160px; animation-delay: -9s; }
+  header, .wrap, .view, .toast { position: relative; z-index: 1; }
+
+  header { background: rgba(15,23,42,.72); backdrop-filter: blur(14px) saturate(1.3); border-bottom: 1px solid rgba(148,163,184,.14); box-shadow: 0 8px 32px rgba(2,6,23,.35); }
+  header h1 { position: relative; padding-left: 26px; letter-spacing: .3px; }
+  header h1::before {
+    content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 18px; height: 18px; border-radius: 6px;
+    background: linear-gradient(135deg, #818cf8, #a855f7); box-shadow: 0 4px 14px rgba(129,140,248,.45);
+    animation: awRipple 3s ease-out infinite;
+  }
+  .tabs button { border-radius: 12px; position: relative; overflow: hidden; transition: color .25s, transform .18s; }
+  .tabs button::after { content: ""; position: absolute; inset: 0; background: linear-gradient(120deg, var(--brand), var(--brand2)); opacity: 0; transition: opacity .25s; }
+  .tabs button:hover { transform: translateY(-1px); }
+  .tabs button.on { box-shadow: 0 6px 20px rgba(99,102,241,.45); transform: translateY(-1px); }
+  .tabs button.on::after { opacity: 1; }
+  .tabs button * { position: relative; z-index: 1; }
+
+  .view.on { animation: awFadeUp .45s cubic-bezier(.22,1,.36,1) both; }
+  .card { background: rgba(30,41,59,.55); border: 1px solid rgba(148,163,184,.14); backdrop-filter: blur(8px); position: relative; overflow: hidden; transition: transform .25s, border-color .25s, box-shadow .25s; }
+  .card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(129,140,248,.7), transparent); opacity: 0; transition: opacity .25s; }
+  .card:hover { transform: translateY(-4px); border-color: rgba(129,140,248,.45); box-shadow: 0 14px 34px rgba(2,6,23,.5), 0 0 0 1px rgba(129,140,248,.18); }
+  .card:hover::before { opacity: 1; }
+  .card .num { font-size: 30px; background: linear-gradient(120deg, #e0e7ff, #c7d2fe 55%, #ddd6fe); -webkit-background-clip: text; background-clip: text; color: transparent; transition: color .2s; }
+
+  .chat-card { background: rgba(30,41,59,.55); backdrop-filter: blur(6px); position: relative; overflow: hidden; transition: transform .2s, border-color .2s, box-shadow .2s; }
+  .chat-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--brand), var(--brand2)); opacity: 0; transition: opacity .2s; }
+  .chat-card:hover { transform: translateY(-2px); border-color: rgba(129,140,248,.4); box-shadow: 0 10px 26px rgba(2,6,23,.45); }
+  .chat-card.active::before { opacity: 1; }
+
+  button { position: relative; overflow: hidden; transition: transform .16s, border-color .2s, box-shadow .2s, filter .2s; }
+  button:hover { transform: translateY(-1px); }
+  button:active { transform: translateY(0) scale(.97); }
+  button.primary::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: linear-gradient(105deg, transparent, rgba(255,255,255,.35), transparent); transform: translateX(-130%) skewX(-18deg); }
+  button.primary:hover::after { animation: awSheen .9s ease; }
+
+  input, textarea, select { transition: border-color .2s, box-shadow .2s, background .2s; }
+  input:focus, textarea:focus, select:focus { box-shadow: 0 0 0 4px rgba(99,102,241,.18); }
+
+  .msg { animation: awFadeUp .3s ease both; }
+  .msg:nth-child(odd) { animation-duration: .26s; }
+  .msg .bub { box-shadow: 0 4px 14px rgba(2,6,23,.35); }
+  .msg.user .bub { background: linear-gradient(135deg, #3730a3, #4338ca); }
+  .msg.bot .bub { background: linear-gradient(160deg, #24304a, #1e293b); }
+  .msg.agent .bub { background: linear-gradient(160deg, #572264, #4a1d53); }
+
+  input[type="checkbox"] { appearance: none; width: 38px !important; height: 21px !important; border-radius: 100px; background: var(--panel2); border: 1px solid var(--line); cursor: pointer; vertical-align: -5px; margin-right: 8px !important; position: relative; transition: background .25s, border-color .25s; }
+  input[type="checkbox"]::after { content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #cbd5e1; transition: transform .25s cubic-bezier(.34,1.56,.64,1), background .25s; }
+  input[type="checkbox"]:checked { background: linear-gradient(120deg, var(--brand), var(--brand2)); border-color: transparent; }
+  input[type="checkbox"]:checked::after { transform: translateX(16px); background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+  label:has(input[type="checkbox"]) { display: inline-flex; align-items: center; line-height: 1.4; }
+
+  .toast { background: rgba(30,41,59,.92); backdrop-filter: blur(10px); border: 1px solid rgba(148,163,184,.18); border-radius: 14px; box-shadow: 0 12px 40px rgba(2,6,23,.55); animation: awFadeUp .35s cubic-bezier(.22,1,.36,1) both; }
+
+  .filters button { transition: transform .16s, background .2s, box-shadow .2s; }
+  .filters button:hover { transform: translateY(-1px); }
+  .filters button.on { box-shadow: 0 4px 14px rgba(99,102,241,.4); }
+
+  .st { backdrop-filter: blur(4px); }
+  details[open] summary { color: var(--text); }
+  summary.hint { cursor: pointer; transition: color .2s; }
+  summary.hint:hover { color: var(--text); }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(148,163,184,.25); border-radius: 100px; border: 2px solid var(--bg2); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,.42); }
+
+  .empty { opacity: .7; animation: awFadeUp .4s ease both; }
+  .databox { background: rgba(30,41,59,.5); backdrop-filter: blur(8px); border: 1px solid rgba(148,163,184,.14); }
+  .skeleton { background: linear-gradient(90deg, rgba(148,163,184,.08), rgba(148,163,184,.16), rgba(148,163,184,.08)); background-size: 400px 100%; animation: awShimmer 1.2s infinite linear; }
+
+  .page { animation: awFadeUp .4s ease both; }
 </style>
 </head>
 <body>
@@ -130,6 +225,8 @@
     <button id="tab_chats" class="on" onclick="showTab('chats')">Чаты</button>
     <button id="tab_stats" onclick="showTab('stats')">Статистика</button>
     <button id="tab_data" onclick="showTab('data')">Данные и инструкции</button>
+    <button id="tab_site" onclick="showTab('site')">Сайт</button>
+    <button id="tab_news" onclick="showTab('news')">Новости</button>
     <button id="tab_settings" onclick="showTab('settings')">Настройки</button>
   </nav>
   <span class="connwrap">
@@ -351,6 +448,112 @@
   </div>
 </div>
 
+<div class="view" id="view-site">
+  <div class="page">
+    <div class="actions" style="justify-content:space-between;flex-wrap:wrap">
+      <h3 style="margin:0">Сайт колледжа — <span id="sv_name">…</span></h3>
+      <div class="actions">
+        <button id="btn_site_refresh">Обновить</button>
+        <button id="btn_site_cache">Очистить кэш сайта</button>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="num" id="sv_online">–</div><div class="lbl">Визитёров онлайн (beacon)</div></div>
+      <div class="card"><div class="num" id="sv_widget">–</div><div class="lbl">Активных диалогов виджета</div></div>
+      <div class="card"><div class="num" id="sv_news_total">–</div><div class="lbl">Всего новостей</div></div>
+      <div class="card"><div class="num" id="sv_news_pub">–</div><div class="lbl">Опубликовано</div></div>
+      <div class="card"><div class="num" id="sv_news_feat">–</div><div class="lbl">Избранных</div></div>
+      <div class="card"><div class="num" id="sv_pages">–</div><div class="lbl">Страниц</div></div>
+      <div class="card"><div class="num" id="sv_sections">–</div><div class="lbl">Разделов</div></div>
+      <div class="card"><div class="num" id="sv_visits">–</div><div class="lbl">Визитов (статистика)</div></div>
+    </div>
+    <h3>Онлайн сейчас</h3>
+    <div class="split">
+      <div class="databox"><h4>Визитёры сайта <span class="tag">последние 5 минут</span></h4><div id="sv_visitors"><div class="hint">Загрузка…</div></div></div>
+      <div class="databox"><h4>Диалоги виджета <span class="tag">последние 10 минут</span></h4><div id="sv_wchats"><div class="hint">Загрузка…</div></div></div>
+    </div>
+    <h3>Разделы сайта (page_sections)</h3>
+    <div class="cfg2" style="max-width:100%">
+      <div class="actions" style="margin-bottom:8px">
+        <select id="sv_page" style="min-width:220px"><option value="">— все страницы —</option></select>
+      </div>
+      <div id="sv_sectlist"><div class="hint">Загрузка…</div></div>
+    </div>
+  </div>
+  <div class="page" id="sv_editor" style="display:none; max-width:none; border-top:1px solid var(--line); margin-top:0">
+    <h3>Редактор раздела: <span id="sv_ed_label" class="warn"></span></h3>
+    <div class="cfg2" style="max-width:100%">
+      <div class="row">
+        <div><label>Заголовок (админ.)</label><input id="sv_ed_title"></div>
+        <div><label>Описание (админ.)</label><input id="sv_ed_desc"></div>
+      </div>
+      <div class="row" style="align-items:flex-end">
+        <div><label>Meta title</label><input id="sv_ed_meta_title"></div>
+        <div><label>Meta description</label><input id="sv_ed_meta_desc"></div>
+        <div style="flex:0 0 130px"><label>Сортировка</label><input id="sv_ed_order" type="number"></div>
+        <div style="flex:0 0 150px; display:flex; align-items:center; padding-bottom:9px"><label><input type="checkbox" id="sv_ed_active" style="width:auto;margin-right:6px"> Активен</label></div>
+      </div>
+      <h4>Контент (мультиязык RU / KK / EN)</h4>
+      <div id="sv_ed_content"></div>
+      <div class="actions">
+        <button class="primary" onclick="saveSection()">Сохранить раздел</button>
+        <button onclick="closeSectionEditor()">Отмена</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-news">
+  <div class="page">
+    <div class="actions" style="justify-content:space-between;flex-wrap:wrap">
+      <h3 style="margin:0">Новости сайта <span class="hint" id="n_pages"></span></h3>
+      <button class="primary" onclick="newNews()">Новая новость</button>
+    </div>
+    <div id="n_list" style="margin-top:12px"><div class="hint">Загрузка…</div></div>
+    <div class="actions" style="margin-top:10px">
+      <button onclick="loadNews(Math.max(1, newsState.page - 1))">← Назад</button>
+      <button onclick="loadNews(newsState.page + 1)">Вперёд →</button>
+    </div>
+  </div>
+  <div class="page" id="n_form" style="display:none">
+    <h3>Редактор новости</h3>
+    <div class="cfg2" style="max-width:100%">
+      <fieldset><legend>Название</legend><div class="mlgrid">
+        <div><label>RU</label><textarea id="n_title_ru"></textarea></div>
+        <div><label>KK</label><textarea id="n_title_kk"></textarea></div>
+        <div><label>EN</label><textarea id="n_title_en"></textarea></div>
+      </div></fieldset>
+      <fieldset><legend>Анонс</legend><div class="mlgrid">
+        <div><label>RU</label><textarea id="n_exc_ru" style="min-height:36px"></textarea></div>
+        <div><label>KK</label><textarea id="n_exc_kk" style="min-height:36px"></textarea></div>
+        <div><label>EN</label><textarea id="n_exc_en" style="min-height:36px"></textarea></div>
+      </div></fieldset>
+      <fieldset><legend>Текст новости (поддерживается HTML)</legend><div class="mlgrid">
+        <div><label>RU</label><textarea id="n_cnt_ru" style="min-height:150px"></textarea></div>
+        <div><label>KK</label><textarea id="n_cnt_kk" style="min-height:150px"></textarea></div>
+        <div><label>EN</label><textarea id="n_cnt_en" style="min-height:150px"></textarea></div>
+      </div></fieldset>
+      <div class="row">
+        <div><label>Обложка (путь из папки public)</label><input id="n_image" placeholder="news/photo.jpg"></div>
+        <div><label>Галерея (пути, по одному на строку)</label><textarea id="n_gallery" style="min-height:40px"></textarea></div>
+      </div>
+      <div class="row" style="align-items:flex-end">
+        <div><label>Дата публикации</label><input id="n_date" type="datetime-local"></div>
+        <div style="display:flex; flex-wrap:wrap; gap:14px; padding-bottom:8px">
+          <label><input type="checkbox" id="n_pub" style="width:auto;margin-right:6px"> Опубликовано</label>
+          <label><input type="checkbox" id="n_feat" style="width:auto;margin-right:6px"> Избранное</label>
+          <label><input type="checkbox" id="n_regenslug" style="width:auto;margin-right:6px"> Обновить slug</label>
+        </div>
+        <div class="actions">
+          <button class="primary" id="n_form_btn" onclick="saveNews()">Создать новость</button>
+          <button class="danger" id="n_del" onclick="deleteNews()" style="display:none">Удалить</button>
+          <button onclick="cancelNewsForm()">Отмена</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script>
 (function () {
@@ -371,13 +574,15 @@
   };
 
   window.showTab = function (name) {
-    ['chats', 'stats', 'data', 'settings'].forEach((t) => {
+    ['chats', 'stats', 'data', 'settings', 'site', 'news'].forEach((t) => {
       $('#view-' + t).classList.toggle('on', t === name);
       $('#tab_' + t).classList.toggle('on', t === name);
     });
     if (name === 'stats') loadStats();
     if (name === 'data') loadData();
     if (name === 'settings') loadConfig();
+    if (name === 'site') { loadSite(); loadSections(); }
+    if (name === 'news') loadNews(1);
   };
 
   window.setFilter = function (f) {
@@ -794,6 +999,229 @@
     } catch (e) { toast('Ошибка теста: ' + e.message); }
   });
 
+// ---------- Сайт ----------
+  const newsState = { id: null, page: 1 };
+  let siteState = { sections: null, secId: null };
+
+  function lpad(v) { return String(v).padStart(2, '0'); }
+  function fmtTs(ts) {
+    const d = new Date(ts * 1000);
+    return d.toLocaleDateString('ru-RU') + ' ' + lpad(d.getHours()) + ':' + lpad(d.getMinutes());
+  }
+
+  async function loadSite() {
+    try {
+      const [ov, wing] = await Promise.all([api('/api/site/overview'), api('/api/site/widget/online')]);
+      $('#sv_name').textContent = ov.siteName || '—';
+      $('#sv_online').textContent = ov.online.total;
+      $('#sv_widget').textContent = wing.total;
+      $('#sv_news_total').textContent = ov.news.total;
+      $('#sv_news_pub').textContent = ov.news.published;
+      $('#sv_news_feat').textContent = ov.news.featured;
+      $('#sv_pages').textContent = ov.sections.pages;
+      $('#sv_sections').textContent = ov.sections.total;
+      $('#sv_visits').textContent = ov.visits ? ov.visits.total : '–';
+      const vis = ov.online.users || [];
+      $('#sv_visitors').innerHTML = vis.length
+        ? vis.map((u) => '<div class="instr-item"><div class="txt"><div class="t">' + esc(u.page || '—') + '</div><div class="s">' + esc(u.ip || '') + ' · ' + fmtTs(u.ts) + '</div></div></div>').join('')
+        : '<div class="hint">Нет активных визитёров прямо сейчас</div>';
+      const we = wing.chats || [];
+      $('#sv_wchats').innerHTML = we.length
+        ? we.map((c) => '<div class="instr-item"><div class="txt"><div class="t">' + esc(c.siteName || 'Чат') + '</div><div class="s">' + esc(String(c.page || '').slice(0, 80)) + ' · ' + esc(new Date(c.updatedAt).toLocaleTimeString('ru-RU')) + '</div></div></div>').join('')
+        : '<div class="hint">Нет активных диалогов виджета</div>';
+    } catch (e) { toast('Сайт: ' + (e && e.message)); }
+  }
+
+  async function loadSections() {
+    try {
+      const page = $('#sv_page').value;
+      const r = await api('/api/site/sections' + (page ? '?page=' + encodeURIComponent(page) : ''));
+      if (!siteState.pages || page === '') {
+        const sel = $('#sv_page');
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">— все страницы —</option>' + (r.pages || []).map((p) => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('');
+        if (prev && prev !== page) sel.value = prev;
+      }
+      const groups = r.sections || {};
+      const box = $('#sv_sectlist');
+      if (!Object.keys(groups).length) { box.innerHTML = '<div class="hint">Разделы не найдены</div>'; return; }
+      let html = '';
+      Object.keys(groups).forEach((pg) => {
+        html += '<div class="databox"><h4>' + esc(pg) + ' <span class="tag">' + groups[pg].length + '</span></h4>';
+        groups[pg].forEach((s) => {
+          html += '<div class="instr-item"><div class="txt"><div class="t">' + esc(s.section_key) + ' <span class="tag">' + esc(s.title || '') + '</span></div>' +
+            '<div class="s">' + (s.is_active ? '<span class="ok">активен</span>' : '<span class="err">выключен</span>') +
+            ' · порядок ' + (s.sort_order || 0) + ' · ' + esc(s.updated_at || '') + '</div></div>' +
+            '<button class="linkbtn" onclick="editSection(' + s.id + ')">редактировать</button></div>';
+        });
+        html += '</div>';
+      });
+      box.innerHTML = html;
+    } catch (e) { toast('Разделы: ' + (e && e.message)); }
+  }
+
+  $('#sv_page').addEventListener('change', () => { siteState.pages = null; loadSections(); });
+
+  window.editSection = async function (id) {
+    try {
+      const r = await api('/api/site/sections/' + id);
+      const s = r.item;
+      siteState.secId = id;
+      $('#sv_ed_label').textContent = s.page_key + '.' + s.section_key;
+      $('#sv_ed_title').value = s.title || '';
+      $('#sv_ed_desc').value = s.description || '';
+      $('#sv_ed_active').checked = s.is_active !== false;
+      $('#sv_ed_order').value = s.sort_order || 0;
+      $('#sv_ed_meta_title').value = s.meta_title || '';
+      $('#sv_ed_meta_desc').value = s.meta_description || '';
+      const map = {};
+      (s.content || []).forEach((it) => { map[it.key] = it; });
+      const box = $('#sv_ed_content');
+      box.innerHTML = '';
+      Object.keys(map).forEach((k) => {
+        const it = map[k];
+        const ru = typeof it.ru !== 'undefined' ? it.ru : it.value;
+        box.insertAdjacentHTML('beforeend',
+          '<div class="mlrow"><div class="mlhead">' + esc(k) + '</div><div class="mlgrid">' +
+          '<div><label>RU</label><textarea data-k="' + esc(k) + '" data-l="ru">' + esc(ru) + '</textarea></div>' +
+          '<div><label>KK</label><textarea data-k="' + esc(k) + '" data-l="kk">' + esc(it.kk || '') + '</textarea></div>' +
+          '<div><label>EN</label><textarea data-k="' + esc(k) + '" data-l="en">' + esc(it.en || '') + '</textarea></div>' +
+          '</div></div>');
+      });
+      $('#sv_editor').style.display = 'block';
+      $('#sv_editor').scrollIntoView({ behavior: 'smooth' });
+    } catch (e) { toast('Секция: ' + (e && e.message)); }
+  };
+
+  window.closeSectionEditor = function () {
+    $('#sv_editor').style.display = 'none';
+    siteState.secId = null;
+  };
+
+  window.saveSection = async function () {
+    if (!siteState.secId) { toast('Раздел не выбран'); return; }
+    const content = {};
+    $('#sv_ed_content').querySelectorAll('textarea[data-k]').forEach((t) => {
+      const k = t.getAttribute('data-k');
+      const l = t.getAttribute('data-l');
+      content[k] = content[k] || {};
+      content[k][l] = t.value;
+    });
+    const body = {
+      title: $('#sv_ed_title').value,
+      description: $('#sv_ed_desc').value,
+      is_active: $('#sv_ed_active').checked,
+      sort_order: parseInt($('#sv_ed_order').value || '0', 10) || 0,
+      meta_title: $('#sv_ed_meta_title').value,
+      meta_description: $('#sv_ed_meta_desc').value,
+      content
+    };
+    try {
+      await api('/api/site/sections/' + siteState.secId, { method: 'PUT', body: JSON.stringify(body) });
+      toast('Раздел сохранён, кэш сайта очищен');
+      closeSectionEditor();
+      loadSections();
+      loadSite();
+    } catch (e) { toast('Ошибка: ' + (e && e.message)); }
+  };
+
+  $('#btn_site_refresh').addEventListener('click', () => { loadSite(); loadSections(); });
+  $('#btn_site_cache').addEventListener('click', async () => {
+    try {
+      const r = await api('/api/site/cache/clear', { method: 'POST', body: '{}' });
+      toast('Кэш сайта очищен: ' + r.cleared_at);
+      loadSite(); loadSections();
+    } catch (e) { toast('Ошибка: ' + (e && e.message)); }
+  });
+
+  // ---------- Новости ----------
+  function nfield(n, f, lang) { return (n && n[f] && typeof n[f] === 'object') ? (n[f][lang] || '') : ((n && n[f]) || ''); }
+
+  async function loadNews(page) {
+    newsState.page = page || 1;
+    try {
+      const r = await api('/api/site/news?per_page=15&page=' + newsState.page);
+      const items = r.items || [];
+      $('#n_list').innerHTML = items.length ? items.map((n) => {
+        const t = nfield(n, 'title', 'ru') || ('#' + n.id);
+        return '<div class="instr-item"><div class="txt"><div class="t">' + esc(t) + ' <span class="tag">#' + n.id + ' · ' + esc(n.slug || '') + '</span></div>' +
+          '<div class="s">' + (n.is_published ? '<span class="ok">опубликовано</span>' : '<span class="warn">черновик</span>') +
+          (n.is_featured ? ' · <span class="tag">избранное</span>' : '') +
+          (n.is_multilang ? ' · <span class="tag">мультиязык</span>' : '') + ' · ' + esc(n.published_at || '—') + '</div></div>' +
+          '<button class="linkbtn" onclick="editNews(' + n.id + ')">изменить</button></div>';
+      }).join('') : '<div class="hint">Новостей нет — нажмите «Новая новость»</div>';
+      const pg = r.pagination || {};
+      $('#n_pages').textContent = pg.total ? ('всего ' + pg.total + ' · стр. ' + pg.current_page + ' / ' + pg.last_page) : '';
+    } catch (e) { toast('Новости: ' + (e && e.message)); }
+  }
+
+  window.newNews = function () { fillNewsForm(null); };
+
+  window.editNews = async function (id) {
+    try {
+      const r = await api('/api/site/news/' + id);
+      fillNewsForm(r.item);
+    } catch (e) { toast('Новости: ' + (e && e.message)); }
+  };
+
+  function fillNewsForm(n) {
+    newsState.id = n ? n.id : null;
+    $('#n_title_ru').value = nfield(n, 'title', 'ru');
+    $('#n_title_kk').value = nfield(n, 'title', 'kk');
+    $('#n_title_en').value = nfield(n, 'title', 'en');
+    $('#n_exc_ru').value = nfield(n, 'excerpt', 'ru');
+    $('#n_exc_kk').value = nfield(n, 'excerpt', 'kk');
+    $('#n_exc_en').value = nfield(n, 'excerpt', 'en');
+    $('#n_cnt_ru').value = nfield(n, 'content', 'ru');
+    $('#n_cnt_kk').value = nfield(n, 'content', 'kk');
+    $('#n_cnt_en').value = nfield(n, 'content', 'en');
+    $('#n_image').value = (n && n.image) || '';
+    $('#n_gallery').value = (n && n.gallery && n.gallery.length ? n.gallery.join('\n') : '');
+    $('#n_pub').checked = !!(n && n.is_published);
+    $('#n_feat').checked = !!(n && n.is_featured);
+    $('#n_regenslug').checked = false;
+    $('#n_date').value = (n && n.published_at) ? n.published_at.replace(' ', 'T') : '';
+    $('#n_form_btn').textContent = n ? 'Сохранить изменения' : 'Создать новость';
+    $('#n_del').style.display = n ? 'inline-block' : 'none';
+    $('#n_form').style.display = 'block';
+    $('#n_form').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  window.cancelNewsForm = function () { $('#n_form').style.display = 'none'; newsState.id = null; };
+
+  window.saveNews = async function () {
+    const body = {
+      title: { ru: $('#n_title_ru').value, kk: $('#n_title_kk').value, en: $('#n_title_en').value },
+      excerpt: { ru: $('#n_exc_ru').value, kk: $('#n_exc_kk').value, en: $('#n_exc_en').value },
+      content: { ru: $('#n_cnt_ru').value, kk: $('#n_cnt_kk').value, en: $('#n_cnt_en').value },
+      image: $('#n_image').value.trim() || '',
+      gallery: $('#n_gallery').value.split('\n').map((s) => s.trim()).filter(Boolean),
+      is_published: $('#n_pub').checked,
+      is_featured: $('#n_feat').checked,
+      published_at: $('#n_date').value ? $('#n_date').value.replace('T', ' ') : '',
+      regenerate_slug: $('#n_regenslug').checked
+    };
+    try {
+      const url = newsState.id ? ('/api/site/news/' + newsState.id) : '/api/site/news';
+      const method = newsState.id ? 'PUT' : 'POST';
+      await api(url, { method, body: JSON.stringify(body) });
+      toast('Новость сохранена');
+      cancelNewsForm();
+      loadNews(newsState.page);
+    } catch (e) { toast('Ошибка: ' + (e && e.message)); }
+  };
+
+  window.deleteNews = async function () {
+    if (!newsState.id) return;
+    if (!confirm('Удалить новость #' + newsState.id + '?')) return;
+    try {
+      await api('/api/site/news/' + newsState.id, { method: 'DELETE' });
+      toast('Новость удалена');
+      cancelNewsForm();
+      loadNews(1);
+    } catch (e) { toast('Ошибка: ' + (e && e.message)); }
+  };
+
   refreshList();
   setInterval(refreshList, 3000);
   setInterval(() => {
@@ -801,6 +1229,63 @@
   }, 3000);
   setInterval(() => { if ($('#view-stats').classList.contains('on')) loadStats(); }, 5000);
   setInterval(() => { if ($('#view-data').classList.contains('on') && !document.hidden) loadData(); }, 7000);
+  setInterval(() => { if ($('#view-site').classList.contains('on') && $('#sv_editor').style.display !== 'block') loadSite(); }, 15000);
+})();
+</script>
+<script>
+(function () {
+  var soon = function (fn) { (window.requestAnimationFrame || function (f) { setTimeout(f, 16); })(fn); };
+
+  // Плавный счётчик цифр в карточках статистики.
+  function animateNum(el, to) {
+    var from = parseFloat(el.getAttribute('data-val') || '0');
+    if (isNaN(from) || isNaN(to) || el.textContent.indexOf('%') > -1 || String(to) === String(from)) {
+      el.removeAttribute('data-val');
+      return;
+    }
+    var start = null, dur = 550;
+    function step(ts) {
+      if (!start) start = ts;
+      var p = Math.min(1, (ts - start) / dur);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(from + (to - from) * eased);
+      if (p < 1) soon(step); else { el.textContent = to; el.style.transform = 'scale(1.08)'; soon(function () { el.style.transform = ''; }); }
+    }
+    soon(step);
+  }
+  function hookCards() {
+    Array.prototype.forEach.call(document.querySelectorAll('.cards'), function (cards) {
+      if (cards.getAttribute('data-aw-hooked')) return;
+      cards.setAttribute('data-aw-hooked', '1');
+      new MutationObserver(function () {
+        Array.prototype.forEach.call(cards.querySelectorAll('.num'), function (el) {
+          var t = parseFloat((el.textContent || '').replace(/[\s\u00a0\u202f]/g, '').replace(',', '.'));
+          if (!isNaN(t)) { animateNum(el, t); el.setAttribute('data-val', String(t)); }
+        });
+      }).observe(cards, { childList: true, subtree: true, characterData: true });
+    });
+  }
+  hookCards();
+  if (window.MutationObserver) {
+    var docObserver = new MutationObserver(function (muts) {
+      var saw = false;
+      muts.forEach(function (m) { if (m.addedNodes && m.addedNodes.length) saw = true; });
+      if (saw) hookCards();
+    });
+    docObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // Тосты: плавное появление и автоскрытие с анимацией.
+  var origToast = window.toast;
+  if (typeof origToast === 'function') {
+    window.toast = function (msg) {
+      var t = document.getElementById('toast');
+      if (!t) { origToast(msg); return; }
+      t.style.animation = 'none'; void t.offsetWidth;
+      t.style.animation = '';
+      origToast(msg);
+    };
+  }
 })();
 </script>
 </body>

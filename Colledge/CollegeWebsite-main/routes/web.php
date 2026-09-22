@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\ThrottleFormSubmissions;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\Api\SiteAdminController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\QuestionController;
@@ -210,6 +211,22 @@ Route::middleware('api')->group(function () {
         Route::get('/events/{id}', [YouthApiController::class, 'getEvent']);
         Route::get('/clubs/{id}', [YouthApiController::class, 'getClub']);
     });
+});
+
+Route::post('/api/site/online/ping', [SiteAdminController::class, 'onlinePing']);
+
+Route::middleware(['api', 'site.token'])->prefix('api/site')->group(function () {
+    Route::get('/overview', [SiteAdminController::class, 'overview']);
+    Route::get('/online', [SiteAdminController::class, 'online']);
+    Route::get('/news', [SiteAdminController::class, 'newsList']);
+    Route::get('/news/{id}', [SiteAdminController::class, 'newsShow']);
+    Route::post('/news', [SiteAdminController::class, 'newsStore']);
+    Route::put('/news/{id}', [SiteAdminController::class, 'newsUpdate']);
+    Route::delete('/news/{id}', [SiteAdminController::class, 'newsDelete']);
+    Route::get('/sections', [SiteAdminController::class, 'sections']);
+    Route::get('/sections/{id}', [SiteAdminController::class, 'sectionShow']);
+    Route::put('/sections/{id}', [SiteAdminController::class, 'sectionUpdate']);
+    Route::post('/cache/clear', [SiteAdminController::class, 'cacheClear']);
 });
 
 Route::get('/test-speed', function () {

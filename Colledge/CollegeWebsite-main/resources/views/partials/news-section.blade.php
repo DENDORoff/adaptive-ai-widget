@@ -8,7 +8,7 @@
     <div class="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-500/3 rounded-full blur-3xl animate-pulse-slow delay-1000"></div>
 
     <div class="container mx-auto px-4 relative z-10 max-w-7xl">
-        <div class="mb-12 text-left">
+        <div class="mb-12 text-left js-reveal">
             <h2 class="text-4xl font-bold text-white flex items-center mb-3">
                 <span class="w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
                 {{ \App\Models\PageSection::getValue('news', 'header', 'title', 'News') }}

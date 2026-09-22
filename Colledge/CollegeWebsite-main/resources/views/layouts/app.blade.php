@@ -49,6 +49,7 @@
     <link rel="stylesheet" href="{{ asset('css/bvi-icons-override.css') }}">
     
     <link rel="stylesheet" href="{{ asset('css/app-layout.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/app-modern.css') }}">
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
@@ -56,9 +57,6 @@
 </head>
 <body class="bg-gray-50 text-gray-900">
 
-    <x-header-top-bar />
-
-    
     <x-header-navbar />
 
     
@@ -650,9 +648,54 @@ function closeMobileMenu() {
     @stack('scripts')
 
     <script>
+    (function () {
+        try {
+            var fp = '';
+            try {
+                fp = localStorage.getItem('aw_site_fp');
+                if (!fp) {
+                    fp = 'b' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                    localStorage.setItem('aw_site_fp', fp);
+                }
+            } catch (e) {}
+            var page = location.pathname + location.search;
+            function ping() {
+                try {
+                    fetch('/api/site/online/ping', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fp: fp, page: page }), keepalive: true }).catch(function () {});
+                } catch (e) {}
+            }
+            ping();
+            setInterval(ping, 60000);
+            window.addEventListener('beforeunload', ping);
+        } catch (e) {}
+    })();
+    </script>
+
+    <script>
+    (function () {
+        var els = document.querySelectorAll('.js-reveal');
+        if (!els.length) return;
+        if (!('IntersectionObserver' in window)) {
+            for (var i = 0; i < els.length; i++) els[i].classList.add('in');
+            return;
+        }
+        var io = new IntersectionObserver(function (entries) {
+            for (var i = 0; i < entries.length; i++) {
+                if (entries[i].isIntersecting) {
+                    entries[i].target.classList.add('in');
+                    io.unobserve(entries[i].target);
+                }
+            }
+        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+        for (var j = 0; j < els.length; j++) io.observe(els[j]);
+    })();
+    </script>
+
+    <script>
     window.ADAPTIVE_WIDGET = {
         siteName: 'Высший колледж электроники и коммуникации',
         position: 'right',
+        backend: 'http://127.0.0.1:3000/api',
         endpoint: 'http://127.0.0.1:3000/api',
         model: 'qwen2.5:3b',
         provider: 'auto',
