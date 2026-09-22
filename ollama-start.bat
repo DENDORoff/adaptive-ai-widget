@@ -10,15 +10,38 @@ where ollama >nul 2>nul
 if not errorlevel 1 (
     set "OLLAMA_EXE=ollama"
 ) else (
-    if exist "%LOCALAPPDATA%\Programs\Ollama\ollama.exe" set "OLLAMA_EXE=%LOCALAPPDATA%\Programs\Ollama\ollama.exe"
+    rem Candidate paths are checked in order (the first that exists wins).
+    for %%P in (
+        "%LOCALAPPDATA%\Programs\Ollama\ollama.exe"
+        "%USERPROFILE%\AppData\Local\Programs\Ollama\ollama.exe"
+        "%ProgramFiles%\Ollama\ollama.exe"
+        "%ProgramFiles(x86)%\Ollama\ollama.exe"
+    ) do (
+        if exist %%P if not defined OLLAMA_EXE set "OLLAMA_EXE=%%~P"
+    )
 )
-if not defined OLLAMA_EXE if exist "%USERPROFILE%\ollama.exe" set "OLLAMA_EXE=%USERPROFILE%\ollama.exe"
-if not defined OLLAMA_EXE if exist "%ProgramFiles%\Ollama\ollama.exe" set "OLLAMA_EXE=%ProgramFiles%\Ollama\ollama.exe"
+
+rem Fallback: scan every user profile for the standard install location.
+if not defined OLLAMA_EXE (
+    for /d %%U in ("%SystemDrive%\Users\*") do (
+        if exist "%%U\AppData\Local\Programs\Ollama\ollama.exe" if not defined OLLAMA_EXE set "OLLAMA_EXE=%%U\AppData\Local\Programs\Ollama\ollama.exe"
+    )
+)
+
+rem Fallback: registry (HKCU first, then HKLM) -> DisplayIcon -> ollama.exe in the same folder.
+if not defined OLLAMA_EXE (
+    for /f "skip=2 tokens=2,*" %%A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\Ollama" /v DisplayIcon 2^>nul') do if exist "%%B" set "OLLAMA_EXE=%%~B\..\ollama.exe"
+)
+if not defined OLLAMA_EXE (
+    for /f "skip=2 tokens=2,*" %%A in ('reg query "HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\Ollama" /v DisplayIcon 2^>nul') do if exist "%%B" set "OLLAMA_EXE=%%~B\..\ollama.exe"
+)
 
 if not defined OLLAMA_EXE (
     echo [!] Ollama not found.
-    echo     Installed with the installer? It lands here:
-    echo         %LOCALAPPDATA%\Programs\Ollama\ollama.exe
+    echo     We looked in:
+    echo         %%LOCALAPPDATA%%\Programs\Ollama\ollama.exe   -^> "%LOCALAPPDATA%\Programs\Ollama\ollama.exe"
+    echo         %%USERPROFILE%%\AppData\Local\Ollama\...     -^> "%USERPROFILE%\AppData\Local\Programs\Ollama\ollama.exe"
+    echo         %%ProgramFiles%%\Ollama\...                  -^> "%ProgramFiles%\Ollama\ollama.exe"
     echo     Download from https://ollama.com/download/windows
     echo     Then re-run this script.
     pause
