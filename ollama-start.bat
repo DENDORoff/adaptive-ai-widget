@@ -1,6 +1,8 @@
 @echo off
 setlocal EnableDelayedExpansion
 title Adaptive AI Widget - Ollama
+set "NO_PAUSE=0"
+if /i "%~1"=="--nopause" set "NO_PAUSE=1"
 
 rem ---------------------------------------------------------------
 rem   Find ollama.exe: in PATH or in common install locations
@@ -44,7 +46,7 @@ if not defined OLLAMA_EXE (
     echo         %%ProgramFiles%%\Ollama\...                  -^> "%ProgramFiles%\Ollama\ollama.exe"
     echo     Download from https://ollama.com/download/windows
     echo     Then re-run this script.
-    pause
+    if not "%NO_PAUSE%"=="1" pause
     exit /b 1
 )
 echo [*] Ollama: !OLLAMA_EXE!
@@ -70,7 +72,7 @@ if %TRIES% geq 30 (
     echo [!] Ollama did not answer in 30 seconds.
     echo     Check the antivirus - it may block port 11434.
     echo     Also make sure this is not an old/existing 'ollama serve' loop.
-    pause
+    if not "%NO_PAUSE%"=="1" pause
     exit /b 1
 )
 timeout /t 1 >nul
@@ -89,7 +91,7 @@ echo [*] Model qwen2.5:3b not found - downloading (~2GB)...
 "!OLLAMA_EXE!" pull qwen2.5:3b
 if errorlevel 1 (
     echo [!] Failed to download the model. Try: ollama pull qwen2.5:3b
-    pause
+    if not "%NO_PAUSE%"=="1" pause
     exit /b 1
 )
 
@@ -102,4 +104,4 @@ echo.
 echo   Ollama: http://localhost:11434
 echo   Model:  qwen2.5:3b
 echo.
-pause
+if not "%NO_PAUSE%"=="1" pause
