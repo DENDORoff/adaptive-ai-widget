@@ -27,7 +27,7 @@
     <div class="container mx-auto max-w-6xl">
         <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/20 shadow-2xl">
             <h1 class="text-2xl md:text-3xl font-bold text-white text-center mb-4 md:mb-6 leading-snug md:leading-tight">
-                {{ \App\Models\PageSection::getValue('vacancies', 'announcement', 'title', 'КГП на ПХВ «Высший колледж электроники и коммуникаций»<br class="hidden md:block">управления образования Павлодарской области акимата Павлодарской области<br class="hidden md:block">объявляет о конкурсе на вакантные должности') }}
+                {{ \App\Models\PageSection::getValue('vacancies', 'announcement', 'title', 'КГП на ПХВ «Высший колледж электроники и коммуникации»<br class="hidden md:block">управления образования Павлодарской области акимата Павлодарской области<br class="hidden md:block">объявляет о конкурсе на вакантные должности') }}
             </h1>
             <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 text-blue-100">
                 
@@ -297,7 +297,7 @@
                                 {{ \App\Models\PageSection::getValue('vacancies', 'info_block', 'title', 'О PDF документах вакансий') }}
                             </h4>
                             <p class="text-gray-300 mb-3 text-sm md:text-base">
-                                {{ \App\Models\PageSection::getValue('vacancies', 'info_block', 'description', 'Каждая вакансия содержит официальный PDF документ с полным описанием требований, обязанностей и условий работы в КГП на ПХВ «Высший колледж электроники и коммуникаций» управления образования Павлодарской области.') }}
+                                {{ \App\Models\PageSection::getValue('vacancies', 'info_block', 'description', 'Каждая вакансия содержит официальный PDF документ с полным описанием требований, обязанностей и условий работы в КГП на ПХВ «Высший колледж электроники и коммуникации» управления образования Павлодарской области.') }}
                             </p>
                             <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3 text-xs md:text-sm text-gray-400">
                                 @for($i = 1; $i <= 3; $i++)

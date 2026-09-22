@@ -146,7 +146,10 @@
         
         <div class="border-t border-gray-800 pt-8">
             <p class="text-center text-sm text-gray-500">
-                {{ \App\Models\PageSection::getValue('footer', 'copyright', 'text', '© 2025 Высший колледж электроники и коммуникаций. Все права защищены.') }}
+                {{ \App\Models\PageSection::getValue('footer', 'copyright', 'text', '© 2025 Высший колледж электроники и коммуникации. Все права защищены.') }}
+            </p>
+            <p class="text-center text-xs mt-3 text-gray-600">
+                developed by <a href="https://dendor.deworld.su" target="_blank" rel="noopener nofollow" class="text-gray-400 hover:text-white transition-colors">dendor</a>
             </p>
         </div>
     </div>

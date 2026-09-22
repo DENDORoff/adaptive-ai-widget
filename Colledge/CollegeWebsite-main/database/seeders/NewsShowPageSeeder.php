@@ -36,8 +36,8 @@ class NewsShowPageSeeder extends Seeder
                             'en' => '{{title}} | College news',
                         ],
                         'meta_title_pattern' => [
-                            'ru' => '{{title}} | Новости колледжа электроники и связи',
-                            'kk' => '{{title}} | Электроника және байланыс колледжінің жаңалықтары',
+                            'ru' => '{{title}} | Новости колледжа электроники и коммуникации',
+                            'kk' => '{{title}} | Электроника және коммуникация колледжінің жаңалықтары',
                             'en' => '{{title}} | News of the College of Electronics and Communications',
                         ],
                         'meta_description_pattern' => [

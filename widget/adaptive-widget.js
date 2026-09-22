@@ -128,7 +128,8 @@
     flyViewerDemo: 'Demo neuron (NeuPrint is offline). Rotate by dragging, zoom with the wheel.',
     flyViewerFail: '3D rendering is not available in this environment.',
     flyLoadBtn: 'Show',
-    flyTypesLabel: 'Type and brain region'
+    flyTypesLabel: 'Type and brain region',
+    flyStack: 'Experimental alpha feature · stack: flyconnectome/NeuPrint · navis · Brian2/NEST · PyTorch/TensorFlow'
   } : {
     title: 'Ассистент сайта',
     status: 'отвечаю по реальным данным',
@@ -171,7 +172,8 @@
     flyViewerDemo: 'Демо-нейрон (NeuPrint недоступен). Вращайте перетаскиванием, масштаб — колесом.',
     flyViewerFail: 'В этой среде 3D-рендер недоступен.',
     flyLoadBtn: 'Показать',
-    flyTypesLabel: 'Тип и доля нейронов'
+    flyTypesLabel: 'Тип и доля нейронов',
+    flyStack: 'Экспериментальная альфа-фича · стек: flyconnectome/NeuPrint · navis · Brian2/NEST · PyTorch/TensorFlow'
   };
 
   var PALETTE = { primary: '#2563eb', accent: '#312e81', bg: '#ffffff', fg: '#111827', font: 'system-ui', radius: 14, dark: false, logo: '' };
@@ -702,6 +704,7 @@ var vpBound = false;
       '.fmsgs .b .m{max-width:92%;}',
       '.flybar{position:absolute;top:8px;right:8px;z-index:2;}',
       '.flybar button{border:1px solid ' + (dark ? 'rgba(255,255,255,.18)' : 'rgba(0,0,0,.12)') + ';background:' + (dark ? '#2b3242' : '#ffffff') + ';color:' + sub + ';border-radius:8px;padding:4px 8px;font-size:11.5px;cursor:pointer;}',
+      '.fstack{padding:8px 12px;font-size:11px;line-height:1.35;color:' + sub + ';border-bottom:1px solid ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)') + ';background:' + hexA(PALETTE.primary, .04) + ';}'
     ].join('\n');
   }
 
@@ -724,6 +727,7 @@ var vpBound = false;
       '<div class="viewp fly" data-view="fly" style="display:none">' +
       '<div class="fops"><select class="fsels" aria-label="' + T.flyTypesLabel + '"></select><button class="fload">' + T.flyLoadBtn + '</button></div>' +
       '<div class="fcanvas"><div class="fph"><span class="lbl"></span><span class="fsub"></span></div><div class="flybar" style="display:none"></div></div>' +
+      '<div class="fstack">' + T.flyStack + '</div>' +
       '<div class="fmsgs"></div>' +
       '<div class="finput"><input type="text" placeholder="' + T.flyPlaceholder + '"><button aria-label="' + T.send + '">' + SVG_SEND + '</button></div>' +
       '</div>' +

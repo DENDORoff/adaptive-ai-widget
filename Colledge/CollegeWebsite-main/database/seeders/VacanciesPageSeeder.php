@@ -101,8 +101,8 @@ class VacanciesPageSeeder extends Seeder
                     'description' => 'Официальное объявление и бейджи',
                     'content' => [
                         'title' => [
-                            'ru' => 'КГП на ПХВ «Высший колледж электроники и коммуникаций»<br class="hidden md:block">управления образования Павлодарской области акимата Павлодарской области<br class="hidden md:block">объявляет о конкурсе на вакантные должности',
-                            'kk' => 'КГП ҰБЖ «Электроника және коммуникациялар жоғары колледжі»<br class="hidden md:block">Павлодар облысы әкімдігінің білім басқармасы<br class="hidden md:block">бос лауазымдар бойынша байқау туралы хабарлайды',
+                            'ru' => 'КГП на ПХВ «Высший колледж электроники и коммуникации»<br class="hidden md:block">управления образования Павлодарской области акимата Павлодарской области<br class="hidden md:block">объявляет о конкурсе на вакантные должности',
+                            'kk' => 'КГП ҰБЖ «Электроника және Коммуникация жоғары колледжі»<br class="hidden md:block">Павлодар облысы әкімдігінің білім басқармасы<br class="hidden md:block">бос лауазымдар бойынша байқау туралы хабарлайды',
                             'en' => 'State Communal Enterprise «Higher College of Electronics and Communications»<br class="hidden md:block">of the Education Department of Pavlodar region akimat of Pavlodar region<br class="hidden md:block">announces a competition for vacant positions',
                         ],
                         'badge_1' => [
@@ -354,8 +354,8 @@ class VacanciesPageSeeder extends Seeder
                             'en' => 'About vacancy PDF documents',
                         ],
                         'description' => [
-                            'ru' => 'Каждая вакансия содержит официальный PDF документ с полным описанием требований, обязанностей и условий работы в КГП на ПХВ «Высший колледж электроники и коммуникаций» управления образования Павлодарской области.',
-                            'kk' => 'Әрбір бос орын Павлодар облысы білім басқармасының КГП ҰБЖ «Электроника және коммуникациялар жоғары колледжіндегі жұмыс талаптарының, міндеттерінің және жағдайларының толық сипаттамасы бар ресми PDF құжатын қамтиды.',
+                            'ru' => 'Каждая вакансия содержит официальный PDF документ с полным описанием требований, обязанностей и условий работы в КГП на ПХВ «Высший колледж электроники и коммуникации» управления образования Павлодарской области.',
+                            'kk' => 'Әрбір бос орын Павлодар облысы білім басқармасының КГП ҰБЖ «Электроника және Коммуникация жоғары колледжіндегі жұмыс талаптарының, міндеттерінің және жағдайларының толық сипаттамасы бар ресми PDF құжатын қамтиды.',
                             'en' => 'Each vacancy contains an official PDF document with a full description of requirements, responsibilities and working conditions at the State Communal Enterprise «Higher College of Electronics and Communications» of the Education Department of Pavlodar region.',
                         ],
                         'point_1' => [

@@ -33,7 +33,7 @@ return [
     'Visually impaired version' => 'Версия для слабовидящих',
     'Rector blog' => 'Блог ректора',
 
-    'Higher College of Electronics and Communications' => 'Высший колледж электроники и коммуникаций',
+    'Higher College of Electronics and Communications' => 'Высший колледж электроники и коммуникации',
 
     'Send us a message' => 'Отправьте нам сообщение',
     'Your name' => 'Ваше имя',

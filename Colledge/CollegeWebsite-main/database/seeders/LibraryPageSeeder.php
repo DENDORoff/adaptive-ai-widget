@@ -36,8 +36,8 @@ class LibraryPageSeeder extends Seeder
                             'en' => 'College library',
                         ],
                         'meta_title' => [
-                            'ru' => 'Библиотека | Цифровая библиотека колледжа электроники и связи',
-                            'kk' => 'Кітапхана | Электроника және байланыс колледжінің цифрлық кітапханасы',
+                            'ru' => 'Библиотека | Цифровая библиотека колледжа электроники и коммуникации',
+                            'kk' => 'Кітапхана | Электроника және коммуникация колледжінің цифрлық кітапханасы',
                             'en' => 'Library | Digital library of the College of Electronics and Communications',
                         ],
                         'meta_description' => [

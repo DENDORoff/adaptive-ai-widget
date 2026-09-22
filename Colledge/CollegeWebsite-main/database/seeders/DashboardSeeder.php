@@ -585,8 +585,8 @@ class DashboardSeeder extends Seeder
                             'en' => 'Computing Technology',
                         ],
                         'teachers_automation_label' => [
-                            'ru' => 'Автоматика и связь',
-                            'kk' => 'Автоматика және байланыс',
+                            'ru' => 'Автоматика и коммуникация',
+                            'kk' => 'Автоматика және коммуникация',
                             'en' => 'Automation and Communication',
                         ],
                         'teachers_sports_label' => [

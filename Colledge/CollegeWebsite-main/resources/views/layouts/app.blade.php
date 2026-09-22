@@ -651,7 +651,7 @@ function closeMobileMenu() {
 
     <script>
     window.ADAPTIVE_WIDGET = {
-        siteName: 'Высший Колледж Электроники и Связи',
+        siteName: 'Высший колледж электроники и коммуникации',
         position: 'right',
         endpoint: 'http://127.0.0.1:3000/api',
         model: 'qwen2.5:3b',
