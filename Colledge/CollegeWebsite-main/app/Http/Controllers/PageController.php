@@ -40,7 +40,7 @@ class PageController extends Controller
 
     public function governmentServices()
     {
-        return view('services.government-services');
+        return redirect()->route('expertise.index');
     }
 
     public function sovet()

@@ -695,7 +695,7 @@ function closeMobileMenu() {
     window.ADAPTIVE_WIDGET = {
         siteName: 'Высший колледж электроники и коммуникации',
         position: 'right',
-        backend: 'http://127.0.0.1:3000/api',
+        backend: 'http://127.0.0.1:3000',
         endpoint: 'http://127.0.0.1:3000/api',
         model: 'qwen2.5:3b',
         provider: 'auto',

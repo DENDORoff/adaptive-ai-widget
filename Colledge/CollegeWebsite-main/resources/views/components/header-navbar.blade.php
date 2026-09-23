@@ -139,6 +139,12 @@
                 
                 <button onclick="openContactsModal()" class="nav-link">{{ \App\Models\PageSection::getValue('navigation', 'menu', 'contacts_label', 'Контакты') }}</button>
                 
+                <button class="bvi-open nav-link" aria-label="{{ \App\Models\PageSection::getValue('header', 'top_menu', 'bvi_label', 'Версия для слабовидящих') }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 1a3 3 0 100 6 3 3 0 000-6zm-2.5 5.5L6 15h3l1.5-4h3L15 15h3l-3.5-8.5A4 4 0 009.5 6.5z"/>
+                    </svg>
+                </button>
+                
                 <div class="relative search-wrapper">
                     <button class="nav-link search-button" onclick="toggleSearch()">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

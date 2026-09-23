@@ -41,8 +41,8 @@
                         @endphp
                         
                         @if($name && $phone)
-                            <div class="flex items-center p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:border-blue-500/50 transition-all duration-300 group hover:scale-105 min-h-[90px]">
-                                <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <div class="flex items-center justify-between p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:border-blue-500/50 transition-all duration-300 group hover:scale-105 min-h-[90px]">
+                                <div class="flex items-center gap-3 min-w-0">
                                     <div class="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center group-hover:bg-blue-600/30 transition-colors flex-shrink-0">
                                         @if($iconPath)
                                             <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,10 +55,12 @@
                                             </svg>
                                         @endif
                                     </div>
-                                    <div class="min-w-0 flex-1">
+                                    <div class="min-w-0">
                                         <div class="text-gray-300 font-medium text-sm whitespace-nowrap truncate">{{ $name }}</div>
-                                        <div class="text-white font-bold text-base whitespace-nowrap truncate">{{ $phone }}</div>
                                     </div>
+                                </div>
+                                <div class="ml-auto pl-3 flex-shrink-0">
+                                    <div class="text-white font-bold text-base whitespace-nowrap">{{ $phone }}</div>
                                 </div>
                             </div>
                         @endif

@@ -1198,6 +1198,11 @@
                 </div>
                 
                 <div class="flex items-center gap-3">
+                    <a href="/" class="flex items-center gap-2 bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-lg text-sm font-semibold transition no-underline">
+                        <i class="fas fa-arrow-left text-sm"></i>
+                        <span>На главную сайта</span>
+                    </a>
+                    
                     <div class="datetime-horizontal text-right">
                         <div id="clock" class="text-xl font-bold leading-tight"></div>
                         <div id="date" class="text-blue-200 text-xl"></div>
